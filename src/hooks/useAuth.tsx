@@ -15,6 +15,7 @@ import {
   increment,
   Timestamp,
   FieldValue,
+  onSnapshot,
 } from "firebase/firestore";
 
 interface Reward {
@@ -54,17 +55,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubscribeSnapshot: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-        if (userDoc.exists()) {
-          setUser(userDoc.data() as User);
-        }
+        // Set up real-time listener for user data
+        const userRef = doc(db, "users", firebaseUser.uid);
+        unsubscribeSnapshot = onSnapshot(
+          userRef,
+          (doc) => {
+            if (doc.exists()) {
+              const userData = doc.data() as User;
+              console.log("User data updated in real-time:", {
+                name: userData.name,
+                purchases: userData.purchases,
+                isRewardReady: userData.isRewardReady,
+              });
+              setUser(userData);
+            } else {
+              console.log("User document does not exist");
+              setUser(null);
+            }
+          },
+          (error) => {
+            console.error("Error listening to user data:", error);
+            setUser(null);
+          }
+        );
       } else {
         setUser(null);
+        if (unsubscribeSnapshot) {
+          unsubscribeSnapshot();
+          unsubscribeSnapshot = null;
+        }
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+    };
   }, []);
 
   const login = async (
@@ -72,11 +104,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     password: string
   ): Promise<User | null> => {
     const cred = await signInWithEmailAndPassword(auth, email, password);
-    
+
+    // The real-time listener will automatically update the user state
+    // when the user document is fetched, so we don't need to manually set it here
     const userDoc = await getDoc(doc(db, "users", cred.user.uid));
-   
+
     if (userDoc.exists()) {
-      setUser(userDoc.data() as User);
       return userDoc.data() as User;
     }
     return null;
@@ -101,7 +134,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       rewards: [],
     };
     await setDoc(doc(db, "users", cred.user.uid), newUser);
-    setUser(newUser);
+    // The real-time listener will automatically update the user state
     return newUser;
   };
 
@@ -115,8 +148,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isRewardReady,
       lastScanAt: Timestamp.now(),
     });
-    const userDoc = await getDoc(userRef);
-    if (userDoc.exists()) setUser(userDoc.data() as User);
+    // The real-time listener will automatically update the user state
   };
 
   const useReward = async () => {
@@ -131,8 +163,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isRewardReady: false,
       rewards: [...(user.rewards || []), reward],
     });
-    const userDoc = await getDoc(userRef);
-    if (userDoc.exists()) setUser(userDoc.data() as User);
+    // The real-time listener will automatically update the user state
   };
 
   const logout = async () => {

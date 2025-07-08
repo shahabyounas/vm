@@ -1,102 +1,97 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { db } from "@/lib/utils";
-import { doc, getDoc, runTransaction } from "firebase/firestore";
-import { Html5Qrcode } from "html5-qrcode";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  runTransaction,
+} from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Scanner } from "@yudiel/react-qr-scanner";
 
 const Scan = () => {
   const [scanned, setScanned] = useState(false);
   const [scannedUser, setScannedUser] = useState<string | null>(null);
-  const qrRef = useRef<HTMLDivElement>(null);
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!qrRef.current) return;
-    const qrCodeScanner = new Html5Qrcode(qrRef.current.id);
-    html5QrCodeRef.current = qrCodeScanner;
-    qrCodeScanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      async (data: string) => {
-        if (!scanned) {
-          setScanned(true);
-          // Assume QR code is: LOYALTY:{email}:{uid}
-          const parts = data.split(":");
-          const uid = parts[2];
-          if (!uid) {
-            toast({
-              title: "Invalid QR",
-              description: "Could not parse user ID.",
-              variant: "destructive",
-            });
-            setTimeout(() => setScanned(false), 2000);
-            return;
-          }
-          // Fetch user and increment purchase
-          const userRef = doc(db, "users", uid);
-          const userSnap = await getDoc(userRef);
-          if (!userSnap.exists()) {
-            toast({
-              title: "User Not Found",
-              description: "No user for this QR code.",
-              variant: "destructive",
-            });
-            setTimeout(() => setScanned(false), 2000);
-            return;
-          }
-          try {
-            await runTransaction(db, async (transaction) => {
-              const freshSnap = await transaction.get(userRef);
-              if (!freshSnap.exists()) throw new Error("User not found");
-              const userData = freshSnap.data();
-              const newPurchases = (userData.purchases || 0) + 1;
-              const isRewardReady = newPurchases >= 5;
-              transaction.update(userRef, {
-                purchases: newPurchases,
-                isRewardReady,
-                lastScanAt: new Date(),
-              });
-            });
-            setScannedUser(uid);
-            toast({ title: "Success", description: "Loyalty point added!" });
-          } catch (error: unknown) {
-            let message = "Failed to increment loyalty point.";
-            if (
-              error &&
-              typeof error === "object" &&
-              "message" in error &&
-              typeof (error as { message?: unknown }).message === "string"
-            ) {
-              message = (error as { message: string }).message;
-            }
-            toast({
-              title: "Error",
-              description: message,
-              variant: "destructive",
-            });
-          }
-          setTimeout(() => {
-            setScanned(false);
-            setScannedUser(null);
-          }, 2000);
-        }
-      },
-      (err) => {
-        toast({
-          title: "Scan Error",
-          description: String(err),
-          variant: "destructive",
-        });
+  const handleQRCodeScan = async (data: string | null) => {
+    if (!data || scanned) return;
+    setScanned(true);
+    setScanError(null);
+
+    try {
+      // Assume QR code is: LOYALTY:{email}:{uid}
+      const parts = data.split(":");
+      if (parts.length < 3 || parts[0] !== "LOYALTY") {
+        throw new Error("Invalid QR code format - must be LOYALTY:email:uid");
       }
-    );
-    return () => {
-      qrCodeScanner.stop().catch(() => {});
-      qrCodeScanner.clear();
-    };
-  }, [scanned]);
+      const email = parts[1];
+      if (!email) throw new Error("No email found in QR code");
+
+      // Look up user by email
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("email", "==", email));
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) {
+        throw new Error("No user found for this email");
+      }
+      const userDoc = querySnapshot.docs[0];
+      const userRef = doc(db, "users", userDoc.id);
+      const userData = userDoc.data();
+      const currentPurchases = userData.purchases || 0;
+      const newPurchases = currentPurchases + 1;
+      const isRewardReady = newPurchases >= 5;
+
+      await runTransaction(db, async (transaction) => {
+        const freshSnap = await transaction.get(userRef);
+        if (!freshSnap.exists()) throw new Error("User not found");
+        transaction.update(userRef, {
+          purchases: newPurchases,
+          isRewardReady,
+          lastScanAt: new Date(),
+        });
+      });
+
+      setScannedUser(email);
+      let successMessage = `Loyalty point added! Total purchases: ${newPurchases}`;
+      if (isRewardReady) {
+        successMessage += " - Reward ready! 🎉";
+      } else {
+        const remaining = 5 - newPurchases;
+        successMessage += ` - ${remaining} more to earn reward`;
+      }
+      toast({
+        title: "Success",
+        description: successMessage,
+      });
+    } catch (error: unknown) {
+      let message = "Failed to process loyalty point";
+      if (error instanceof Error) {
+        message = error.message;
+      }
+      setScanError(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    }
+    setTimeout(() => {
+      setScanned(false);
+      setScannedUser(null);
+    }, 3000);
+  };
+
+  const resetScanner = () => {
+    setScanned(false);
+    setScannedUser(null);
+    setScanError(null);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 relative overflow-hidden">
@@ -121,23 +116,48 @@ const Scan = () => {
             <h2 className="text-2xl font-bold text-white mb-4">
               Scan a User's QR Code
             </h2>
-            <div
-              id="qr-reader"
-              ref={qrRef}
-              style={{ width: 300, height: 300 }}
-            />
-            {scannedUser && (
-              <div className="mt-4 text-green-400 font-semibold">
-                Loyalty point added for user: {scannedUser}
+            {scanError && (
+              <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">
+                {scanError}
               </div>
             )}
-            <Button
-              className="mt-6"
-              onClick={() => setScanned(false)}
-              disabled={!scanned}
-            >
-              Ready for Next Scan
-            </Button>
+            <div className="relative w-full flex flex-col items-center">
+              <Scanner
+                onDecode={handleQRCodeScan}
+                onError={(err) => setScanError(err?.message || "Camera error")}
+                constraints={{ facingMode: "environment" }}
+                containerStyle={{
+                  width: 300,
+                  height: 300,
+                  borderRadius: 16,
+                  overflow: "hidden",
+                }}
+                videoStyle={{ width: 300, height: 300, objectFit: "cover" }}
+              />
+            </div>
+            {scannedUser && (
+              <div className="mt-4 p-3 bg-green-900/50 border border-green-700 rounded-lg text-green-400 font-semibold">
+                <div className="text-center">
+                  <div className="text-lg mb-1">✅ Scan Successful!</div>
+                  <div className="text-sm text-green-300">
+                    Loyalty point added for user
+                  </div>
+                  <div className="text-xs text-green-400 mt-1 font-mono">
+                    {scannedUser}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="mt-6 flex gap-3">
+              <Button
+                onClick={resetScanner}
+                disabled={!scanned && !scanError}
+                variant="outline"
+                className="border-red-500 text-red-400 hover:bg-red-500/20"
+              >
+                Reset Scanner
+              </Button>
+            </div>
           </div>
         </div>
       </div>
