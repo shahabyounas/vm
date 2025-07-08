@@ -35,7 +35,7 @@ const Register = () => {
         name.trim(),
         email.trim(),
         password.trim(),
-        feedback.trim() || undefined
+        feedback.trim() || null
       );
       toast({
         title: "Welcome to Vape Master!",

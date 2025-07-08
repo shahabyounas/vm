@@ -72,7 +72,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     password: string
   ): Promise<User | null> => {
     const cred = await signInWithEmailAndPassword(auth, email, password);
+    console.log("cred", cred);
     const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+    console.log("userDoc", userDoc);
     if (userDoc.exists()) {
       setUser(userDoc.data() as User);
       return userDoc.data() as User;
