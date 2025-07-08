@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 
 interface User {
@@ -63,12 +62,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return;
     const updatedUser = {
       ...user,
-      purchases: user.purchases + 1,
+      purchases: Math.min(5, user.purchases + 1),
       isRewardReady: user.purchases + 1 >= 5
     };
     setUser(updatedUser);
     localStorage.setItem('vape-user', JSON.stringify(updatedUser));
-    
     // Update user in users array
     const users = JSON.parse(localStorage.getItem('vape-users') || '[]');
     const userIndex = users.findIndex((u: User) => u.id === user.id);
@@ -87,7 +85,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
     setUser(updatedUser);
     localStorage.setItem('vape-user', JSON.stringify(updatedUser));
-    
     // Update user in users array
     const users = JSON.parse(localStorage.getItem('vape-users') || '[]');
     const userIndex = users.findIndex((u: User) => u.id === user.id);

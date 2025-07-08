@@ -1,5 +1,4 @@
-
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -7,10 +6,63 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import QRCode from "@/components/QRCode";
 import { ArrowLeft } from 'lucide-react';
+import Confetti from 'react-confetti';
+import React from 'react';
+
+const CircularProgress = ({ value, max }: { value: number; max: number }) => {
+  const pct = Math.min(100, Math.max(0, (value / max) * 100));
+  const radius = 48;
+  const stroke = 8;
+  const normalizedRadius = radius - stroke / 2;
+  const circumference = 2 * Math.PI * normalizedRadius;
+  const offset = circumference - (pct / 100) * circumference;
+
+  return (
+    <div className="flex flex-col items-center justify-center">
+      <div className="relative group w-28 h-28">
+        <svg
+          width={radius * 2}
+          height={radius * 2}
+          className="block"
+        >
+          <circle
+            cx={radius}
+            cy={radius}
+            r={normalizedRadius}
+            fill="none"
+            stroke="#18181b"
+            strokeWidth={stroke}
+          />
+          <circle
+            cx={radius}
+            cy={radius}
+            r={normalizedRadius}
+            fill="none"
+            stroke="#ef4444"
+            strokeWidth={stroke}
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            className="transition-all duration-700 ease-in-out"
+            style={{ filter: 'drop-shadow(0 0 8px #ef4444cc)' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center select-none">
+          <span className="text-xl font-bold text-white drop-shadow-sm">{value} of {max}</span>
+        </div>
+        <div className="absolute inset-0 rounded-full group-hover:scale-105 group-hover:shadow-[0_0_16px_4px_#ef4444cc] transition-transform transition-shadow duration-300" />
+      </div>
+    </div>
+  );
+};
 
 const Dashboard = () => {
   const { user, addPurchase, logout } = useAuth();
   const navigate = useNavigate();
+  const [showFirstConfetti, setShowFirstConfetti] = useState(false);
+  const prevPurchasesRef = React.useRef<number | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [confettiKey, setConfettiKey] = useState(0);
 
   useEffect(() => {
     if (!user) {
@@ -18,13 +70,27 @@ const Dashboard = () => {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (user) {
+      if (prevPurchasesRef.current === 0 && user.purchases === 1) {
+        setShowFirstConfetti(true);
+        setTimeout(() => setShowFirstConfetti(false), 3000);
+      }
+      prevPurchasesRef.current = user.purchases;
+    }
+  }, [user?.purchases]);
+
   if (!user) return null;
 
   const progressPercentage = (user.purchases / 5) * 100;
   const purchasesRemaining = Math.max(0, 5 - user.purchases);
 
   const handleAddPurchase = () => {
+    if (user.purchases >= 5) return;
     addPurchase();
+    setShowConfetti(true);
+    setConfettiKey((k) => k + 1);
+    setTimeout(() => setShowConfetti(false), 2500);
     if (user.purchases + 1 >= 5) {
       toast({
         title: "Reward Unlocked! 🎉",
@@ -50,6 +116,27 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 relative overflow-hidden">
+      {showFirstConfetti && (
+        <Confetti
+          width={window.innerWidth}
+          height={window.innerHeight}
+          numberOfPieces={250}
+          recycle={false}
+          colors={["#ef4444", "#fff"]}
+          style={{ position: 'fixed', left: 0, top: 0, zIndex: 50 }}
+        />
+      )}
+      {showConfetti && (
+        <Confetti
+          key={confettiKey}
+          width={window.innerWidth}
+          height={window.innerHeight}
+          numberOfPieces={250}
+          recycle={false}
+          colors={["#ef4444", "#fff", "#facc15", "#22d3ee", "#a3e635"]}
+          style={{ position: 'fixed', left: 0, top: 0, zIndex: 50 }}
+        />
+      )}
       {/* Background effects */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 right-10 w-40 h-40 bg-red-500 rounded-full blur-3xl animate-pulse"></div>
@@ -95,10 +182,7 @@ const Dashboard = () => {
                   <span className="text-red-400 font-bold">{user.purchases} of 5</span>
                 </div>
                 
-                <Progress 
-                  value={progressPercentage} 
-                  className="h-3"
-                />
+                <CircularProgress value={user.purchases} max={5} />
                 
                 {purchasesRemaining > 0 ? (
                   <p className="text-gray-400 text-sm text-center">
@@ -128,7 +212,8 @@ const Dashboard = () => {
             <div className="space-y-4">
               <Button
                 onClick={handleAddPurchase}
-                className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-none shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                className={`w-full py-4 text-lg font-semibold bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-none shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 ${user.purchases >= 5 ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                disabled={user.purchases >= 5}
               >
                 Add Purchase
               </Button>
