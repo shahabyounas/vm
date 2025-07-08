@@ -20,7 +20,9 @@ const App = () => (
       <AuthProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter
+          basename={import.meta.env.PROD ? "/vaporwave-loyalty-club" : "/"}
+        >
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/register" element={<Register />} />

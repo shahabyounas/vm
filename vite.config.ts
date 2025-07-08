@@ -19,5 +19,9 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  base: '/',
+  base: mode === 'production' ? '/vaporwave-loyalty-club/' : '/',
+  build: {
+    outDir: 'dist',
+    sourcemap: mode === 'development',
+  },
 }));
