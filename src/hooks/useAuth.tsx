@@ -37,6 +37,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  loading: boolean;
   login: (email: string, password: string) => Promise<User | null>;
   register: (
     name: string,
@@ -53,12 +54,20 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let unsubscribeSnapshot: (() => void) | null = null;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log(
+        "Auth state changed:",
+        firebaseUser ? "User logged in" : "User logged out"
+      );
+
       if (firebaseUser) {
+        console.log("Firebase user UID:", firebaseUser.uid);
+
         // Set up real-time listener for user data
         const userRef = doc(db, "users", firebaseUser.uid);
         unsubscribeSnapshot = onSnapshot(
@@ -73,17 +82,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               });
               setUser(userData);
             } else {
-              console.log("User document does not exist");
+              console.log(
+                "User document does not exist for UID:",
+                firebaseUser.uid
+              );
               setUser(null);
             }
+            setLoading(false);
           },
           (error) => {
             console.error("Error listening to user data:", error);
             setUser(null);
+            setLoading(false);
           }
         );
       } else {
+        console.log("No Firebase user, setting user to null");
         setUser(null);
+        setLoading(false);
         if (unsubscribeSnapshot) {
           unsubscribeSnapshot();
           unsubscribeSnapshot = null;
@@ -173,7 +189,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, register, addPurchase, useReward, logout }}
+      value={{ user, loading, login, register, addPurchase, useReward, logout }}
     >
       {children}
     </AuthContext.Provider>

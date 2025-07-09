@@ -19,38 +19,38 @@ const CircularProgress = ({ value, max }: { value: number; max: number }) => {
 
   return (
     <div className="flex flex-col items-center justify-center">
-      <div className="relative group w-28 h-28">
-        <svg width={radius * 2} height={radius * 2} className="block">
-          <circle
-            cx={radius}
-            cy={radius}
-            r={normalizedRadius}
-            fill="none"
-            stroke="#18181b"
-            strokeWidth={stroke}
-          />
-          <circle
-            cx={radius}
-            cy={radius}
-            r={normalizedRadius}
-            fill="none"
-            stroke="#ef4444"
-            strokeWidth={stroke}
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            className="transition-all duration-700 ease-in-out"
-            style={{ filter: "drop-shadow(0 0 8px #ef4444cc)" }}
-          />
-        </svg>
-        <div className="absolute inset-0 rounded-full group-hover:scale-105 group-hover:shadow-[0_0_16px_4px_#ef4444cc] transition-transform transition-shadow duration-300" />
-      </div>
+      <svg
+        height={radius * 2}
+        width={radius * 2}
+        className="transform -rotate-90"
+      >
+        <circle
+          stroke="#374151"
+          fill="transparent"
+          strokeWidth={stroke}
+          strokeDasharray={circumference + " " + circumference}
+          style={{ strokeDashoffset: 0 }}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+        />
+        <circle
+          stroke="#ef4444"
+          fill="transparent"
+          strokeWidth={stroke}
+          strokeDasharray={circumference + " " + circumference}
+          style={{ strokeDashoffset: offset }}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+        />
+      </svg>
     </div>
   );
 };
 
 const Dashboard = () => {
-  const { user, addPurchase, logout } = useAuth();
+  const { user, loading, addPurchase, logout } = useAuth();
   const navigate = useNavigate();
   const [showFirstConfetti, setShowFirstConfetti] = useState(false);
   const prevPurchasesRef = React.useRef<number | null>(null);
@@ -60,10 +60,11 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<"progress" | "card">("progress");
 
   useEffect(() => {
-    if (!user) {
+    // Only navigate if not loading and user is null
+    if (!loading && !user) {
       navigate("/login");
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   useEffect(() => {
     if (user) {
@@ -108,9 +109,21 @@ const Dashboard = () => {
     }
   }, [user?.purchases, user?.isRewardReady, navigate]);
 
+  // Show loading state while auth is initializing
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render anything if user is null (will redirect to login)
   if (!user) return null;
 
-  const progressPercentage = (user.purchases / 5) * 100;
   const purchasesRemaining = Math.max(0, 5 - user.purchases);
 
   const handleAddPurchase = () => {
@@ -146,35 +159,18 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 relative overflow-hidden">
-      {showFirstConfetti && (
-        <Confetti
-          width={window.innerWidth}
-          height={window.innerHeight}
-          numberOfPieces={250}
-          recycle={false}
-          colors={["#ef4444", "#fff"]}
-          style={{ position: "fixed", left: 0, top: 0, zIndex: 50 }}
-        />
-      )}
       {showConfetti && (
         <Confetti
-          key={confettiKey}
           width={window.innerWidth}
           height={window.innerHeight}
-          numberOfPieces={250}
+          numberOfPieces={200}
           recycle={false}
-          colors={["#ef4444", "#fff", "#facc15", "#22d3ee", "#a3e635"]}
-          style={{ position: "fixed", left: 0, top: 0, zIndex: 50 }}
+          key={confettiKey}
         />
       )}
-      {/* Background effects */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-20 right-10 w-40 h-40 bg-red-500 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-32 left-10 w-32 h-32 bg-red-600 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
 
-      <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Header */}
+      {/* Header */}
+      <div className="bg-gray-900/80 backdrop-blur-sm border-b border-red-900/30 sticky top-0 z-10">
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center">
             <Link
@@ -215,7 +211,7 @@ const Dashboard = () => {
               </h2>
               <p className="text-gray-400">Your loyalty card is ready to use</p>
               {lastUpdateTime && (
-                <div className="mt-2 flex items-center justify-center text-xs text-gray-500">
+                <div className="mt-2 flex items-center justify-center text-sm text-gray-500">
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
                   Last updated: {lastUpdateTime.toLocaleTimeString()}
                 </div>
@@ -290,52 +286,45 @@ const Dashboard = () => {
                       </span>
                     </div>
                   </div>
-                  {purchasesRemaining > 0 ? (
-                    <p className="text-pink-200 text-lg text-center animate-fadeIn">
-                      <span className="font-semibold text-white">
-                        {purchasesRemaining}
-                      </span>{" "}
-                      more purchase{purchasesRemaining !== 1 ? "s" : ""} until
-                      your next reward!
+
+                  <div className="text-center space-y-4">
+                    <p className="text-gray-400 text-sm max-w-xs">
+                      {user.purchases >= 5
+                        ? "🎉 You've earned a reward! Check your rewards page."
+                        : `Complete ${purchasesRemaining} more purchase${
+                            purchasesRemaining === 1 ? "" : "s"
+                          } to unlock your reward.`}
                     </p>
-                  ) : (
-                    <p className="text-red-400 font-bold text-lg text-center animate-fadeIn">
-                      <span className="text-2xl">🎉</span> Reward Ready! Visit
-                      the rewards page.
-                    </p>
-                  )}
-                  <div className="mt-8 flex justify-center gap-2 animate-fadeIn">
-                    <span className="inline-block w-2 h-2 bg-gradient-to-br from-red-400 via-pink-400 to-purple-500 rounded-full animate-pulse" />
-                    <span className="inline-block w-2 h-2 bg-gradient-to-br from-blue-400 via-cyan-400 to-purple-500 rounded-full animate-pulse delay-1000" />
-                    <span className="inline-block w-2 h-2 bg-gradient-to-br from-yellow-400 via-pink-400 to-red-500 rounded-full animate-pulse delay-2000" />
+
+                    {user.isRewardReady && (
+                      <Button
+                        onClick={() => navigate("/rewards")}
+                        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                      >
+                        View Reward 🎉
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
             {activeTab === "card" && (
-              <div className="bg-gray-900/80 backdrop-blur-sm border border-red-900/30 rounded-none p-10 min-h-[460px] flex flex-col justify-center -mt-0">
-                <h3 className="text-xl font-semibold text-white mb-4 text-center">
-                  Your Loyalty Card
-                </h3>
-                <QRCode value={`LOYALTY:${user.email}:${user.id}`} size={200} />
-                <p className="text-gray-400 text-sm text-center mt-4">
-                  Show this QR code at checkout
-                </p>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            {user.isRewardReady && (
-              <div className="space-y-4">
-                <Link to="/rewards" className="block">
-                  <Button
-                    variant="outline"
-                    className="w-full py-4 text-lg font-semibold border-2 border-red-500 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-300 transform hover:scale-105"
-                  >
-                    View Reward 🎁
-                  </Button>
-                </Link>
+              <div className="bg-gradient-to-br from-gray-900/90 via-black/80 to-red-950/90 border border-red-900/40 rounded-none p-10 min-h-[460px] flex flex-col justify-center -mt-0 shadow-2xl">
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold text-white mb-6">
+                    Your Loyalty Card
+                  </h3>
+                  <div className="flex justify-center mb-6">
+                    <QRCode
+                      value={`LOYALTY:${user.email}:${user.id}`}
+                      size={200}
+                    />
+                  </div>
+                  <p className="text-gray-400 text-sm">
+                    Show this QR code to staff to earn loyalty points
+                  </p>
+                </div>
               </div>
             )}
           </div>
