@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { db } from "@/lib/utils";
+import { Link, useNavigate } from "react-router-dom";
 import {
   collection,
   query,
@@ -11,7 +12,6 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
 const Scan = () => {
@@ -19,6 +19,7 @@ const Scan = () => {
   const [verified, setVerified] = useState<null | boolean>(null);
   const [scannedUser, setScannedUser] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const navigate = useNavigate();
 
   const handleDecode = async (data: unknown) => {
     if (isProcessing) return;
@@ -106,6 +107,7 @@ const Scan = () => {
         title: "Success",
         description: successMessage,
       });
+      navigate("/dashboard");
     } catch (error) {
       console.error("Error processing QR scan:", error);
       let message = "Failed to process loyalty point";
@@ -143,6 +145,7 @@ const Scan = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 relative overflow-hidden">
+      {console.log("result--", result, verified, scannedUser, isProcessing)}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 right-10 w-40 h-40 bg-red-500 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-32 left-10 w-32 h-32 bg-red-600 rounded-full blur-3xl animate-pulse delay-1000"></div>
