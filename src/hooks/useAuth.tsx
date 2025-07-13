@@ -16,6 +16,9 @@ import {
   Timestamp,
   FieldValue,
   onSnapshot,
+  collection,
+  query,
+  orderBy,
 } from "firebase/firestore";
 
 // Constants
@@ -29,7 +32,7 @@ interface Reward {
   claimedAt: Timestamp;
 }
 
-interface User {
+export interface User {
   id: string;
   name: string;
   email: string;
@@ -55,6 +58,8 @@ interface AuthContextType {
   loading: boolean;
   settings: GlobalSettings | null;
   settingsLoading: boolean;
+  allUsers: User[];
+  allUsersLoading: boolean;
   login: (email: string, password: string) => Promise<User | null>;
   register: (
     name: string,
@@ -79,6 +84,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [allUsersLoading, setAllUsersLoading] = useState(false);
 
   // Fetch global settings
   useEffect(() => {
@@ -111,6 +118,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return () => unsubscribeSettings();
   }, []);
+
+  // Fetch all users for admins and super admins
+  useEffect(() => {
+    if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+      setAllUsers([]);
+      return;
+    }
+
+    setAllUsersLoading(true);
+    const usersRef = collection(db, "users");
+    const usersQuery = query(usersRef, orderBy("createdAt", "desc"));
+
+    const unsubscribeUsers = onSnapshot(
+      usersQuery,
+      (snapshot) => {
+        const users: User[] = [];
+        snapshot.forEach((doc) => {
+          const userData = doc.data() as User;
+          users.push({ ...userData, id: doc.id });
+        });
+        console.log("All users updated:", users.length, "users");
+        setAllUsers(users);
+        setAllUsersLoading(false);
+      },
+      (error) => {
+        console.error("Error listening to all users:", error);
+        setAllUsersLoading(false);
+      }
+    );
+
+    return () => unsubscribeUsers();
+  }, [user?.role]);
 
   useEffect(() => {
     let unsubscribeSnapshot: (() => void) | null = null;
@@ -288,6 +327,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         loading,
         settings,
         settingsLoading,
+        allUsers,
+        allUsersLoading,
         login,
         register,
         addPurchase,
