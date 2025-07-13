@@ -4,15 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="theme-color" content="#111827" />
+    <meta name="theme-color" content="#ef4444" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/public/favicon.ico" />
+    <link rel="apple-touch-icon" href="/icon-192x192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Vaporwave Loyalty Club" />
+    <meta name="apple-mobile-web-app-title" content="Loyalty Club" />
+    <meta name="msapplication-TileColor" content="#ef4444" />
+    <meta name="msapplication-tap-highlight" content="no" />
     <meta
       name="description"
       content="Vaporwave Loyalty Club - Earn rewards and scan QR codes!"
@@ -73,9 +77,17 @@
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          navigator.serviceWorker.register("/sw.js").catch(function (error) {
-            console.log("ServiceWorker registration failed:", error);
-          });
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then(function (registration) {
+              console.log(
+                "ServiceWorker registration successful with scope: ",
+                registration.scope
+              );
+            })
+            .catch(function (error) {
+              console.log("ServiceWorker registration failed:", error);
+            });
         });
       }
     </script>

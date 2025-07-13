@@ -1,8 +1,41 @@
-
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import PWAGuide from "@/components/PWAGuide";
+import { Download } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const Index = () => {
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    // Check if app is already installed
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+    }
+  }, []);
+
+  const handleManualInstall = () => {
+    // Check if we're in a supported browser
+    const isChrome = /Chrome/.test(navigator.userAgent);
+    const isEdge = /Edg/.test(navigator.userAgent);
+    const isSafari =
+      /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+
+    if (isChrome || isEdge) {
+      alert(
+        'To install: Look for the install icon (plus sign) in your browser address bar, or use the menu (three dots) and select "Install app"'
+      );
+    } else if (isSafari) {
+      alert(
+        'To install: Tap the Share button (square with arrow) and select "Add to Home Screen"'
+      );
+    } else {
+      alert(
+        "To install: Use your browser menu to add this site to your home screen or desktop"
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 relative overflow-hidden">
       {/* Smoke background effects */}
@@ -11,7 +44,7 @@ const Index = () => {
         <div className="absolute bottom-20 right-10 w-40 h-40 bg-red-600 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-red-700 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
-      
+
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center">
         {/* Logo/Title */}
         <div className="mb-8">
@@ -27,7 +60,8 @@ const Index = () => {
             Loyalty Program
           </h2>
           <p className="text-gray-300 text-lg leading-relaxed">
-            Join our loyalty program and get rewards! Earn points with every purchase and unlock exclusive benefits.
+            Join our loyalty program and get rewards! Earn points with every
+            purchase and unlock exclusive benefits.
           </p>
         </div>
 
@@ -38,16 +72,35 @@ const Index = () => {
               Join Now
             </Button>
           </Link>
-          
+
           <Link to="/login" className="block">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full py-4 text-lg font-semibold bg-transparent border-2 border-red-500 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-300 transform hover:scale-105"
             >
               Already a Member?
             </Button>
           </Link>
+
+          {/* Install App Button - Only show if not installed */}
+          {!isInstalled && (
+            <Button
+              onClick={handleManualInstall}
+              variant="outline"
+              className="w-full py-3 text-base font-semibold bg-transparent border-2 border-green-500 text-green-400 hover:bg-green-500 hover:text-white transition-all duration-300 transform hover:scale-105"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Install App
+            </Button>
+          )}
         </div>
+
+        {/* PWA Install Guide - Only show if not installed */}
+        {!isInstalled && (
+          <div className="mt-8">
+            <PWAGuide />
+          </div>
+        )}
 
         {/* Footer */}
         <div className="absolute bottom-6 text-center text-gray-500">
