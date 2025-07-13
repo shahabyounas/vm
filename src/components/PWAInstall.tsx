@@ -14,9 +14,47 @@ const PWAInstall = () => {
   const [isInstalled, setIsInstalled] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
 
+  // Improved PWA installation detection
+  const checkIfInstalled = () => {
+    // Multiple detection methods
+    const isStandalone = window.matchMedia(
+      "(display-mode: standalone)"
+    ).matches;
+    const isFullscreen = window.matchMedia(
+      "(display-mode: fullscreen)"
+    ).matches;
+    const isMinimalUI = window.matchMedia("(display-mode: minimal-ui)").matches;
+    const hasNavigatorStandalone =
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    const hasNoReferrer = document.referrer === "";
+    const hasNoHistory = window.history.length <= 1;
+
+    // Check if running as installed app
+    const isInstalledApp =
+      isStandalone || isFullscreen || isMinimalUI || hasNavigatorStandalone;
+
+    // Check for URL parameter override (for testing)
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceHide = urlParams.get("hide-install") === "true";
+
+    console.log("PWA Detection:", {
+      isStandalone,
+      isFullscreen,
+      isMinimalUI,
+      hasNavigatorStandalone,
+      hasNoReferrer,
+      hasNoHistory,
+      isInstalledApp,
+      forceHide,
+    });
+
+    return isInstalledApp || forceHide;
+  };
+
   useEffect(() => {
     // Check if app is already installed
-    if (window.matchMedia("(display-mode: standalone)").matches) {
+    const installed = checkIfInstalled();
+    if (installed) {
       setIsInstalled(true);
       setDebugInfo("App is already installed");
       return;
@@ -61,11 +99,13 @@ const PWAInstall = () => {
 
     // Check if we can install manually - show button after a short delay
     const checkInstallability = () => {
-      // Show manual install button for all browsers
-      setTimeout(() => {
-        setShowInstallButton(true);
-        setDebugInfo("Manual install available");
-      }, 2000);
+      // Double-check if installed before showing button
+      if (!checkIfInstalled()) {
+        setTimeout(() => {
+          setShowInstallButton(true);
+          setDebugInfo("Manual install available");
+        }, 2000);
+      }
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -74,12 +114,35 @@ const PWAInstall = () => {
     // Check installability after a delay
     setTimeout(checkInstallability, 1000);
 
+    // Add a listener for display mode changes
+    const mediaQuery = window.matchMedia("(display-mode: standalone)");
+    const handleDisplayModeChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        setIsInstalled(true);
+        setShowInstallButton(false);
+        setDebugInfo("App switched to standalone mode");
+      }
+    };
+    mediaQuery.addEventListener("change", handleDisplayModeChange);
+
+    // Add a periodic check for installation status
+    const intervalId = setInterval(() => {
+      if (checkIfInstalled()) {
+        setIsInstalled(true);
+        setShowInstallButton(false);
+        setDebugInfo("App detected as installed");
+        clearInterval(intervalId);
+      }
+    }, 2000);
+
     return () => {
       window.removeEventListener(
         "beforeinstallprompt",
         handleBeforeInstallPrompt
       );
       window.removeEventListener("appinstalled", handleAppInstalled);
+      mediaQuery.removeEventListener("change", handleDisplayModeChange);
+      clearInterval(intervalId);
     };
   }, []);
 
@@ -110,20 +173,45 @@ const PWAInstall = () => {
       const isSafari =
         /Safari/.test(navigator.userAgent) &&
         !/Chrome/.test(navigator.userAgent);
+      const isFirefox = /Firefox/.test(navigator.userAgent);
+      const isMobile =
+        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        );
 
-      if (isChrome || isEdge) {
-        alert(
-          'To install: Look for the install icon (plus sign) in your browser address bar, or use the menu (three dots) and select "Install app"'
-        );
-      } else if (isSafari) {
-        alert(
-          'To install: Tap the Share button (square with arrow) and select "Add to Home Screen"'
-        );
+      let message = "";
+
+      if (isMobile) {
+        if (isSafari) {
+          message =
+            'To install: Tap the Share button (square with arrow) and select "Add to Home Screen"';
+        } else if (isChrome || isEdge) {
+          message =
+            'To install: Tap the menu (three dots) and select "Add to Home screen" or "Install app"';
+        } else if (isFirefox) {
+          message =
+            'To install: Tap the menu (three lines) and select "Add to Home Screen"';
+        } else {
+          message =
+            "To install: Use your browser menu to add this site to your home screen";
+        }
       } else {
-        alert(
-          "To install: Use your browser menu to add this site to your home screen or desktop"
-        );
+        if (isChrome || isEdge) {
+          message =
+            'To install: Look for the install icon (plus sign) in your browser address bar, or use the menu (three dots) and select "Install app"';
+        } else if (isSafari) {
+          message =
+            'To install: Use the Share button in the toolbar and select "Add to Dock"';
+        } else if (isFirefox) {
+          message =
+            'To install: Use the menu (three lines) and select "Install App"';
+        } else {
+          message =
+            "To install: Use your browser menu to add this site to your desktop";
+        }
       }
+
+      alert(message);
       setDebugInfo("Manual install instructions shown");
     }
   };

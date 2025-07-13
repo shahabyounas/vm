@@ -7,11 +7,42 @@ import { useEffect, useState } from "react";
 const Index = () => {
   const [isInstalled, setIsInstalled] = useState(false);
 
+  // Improved PWA installation detection
+  const checkIfInstalled = () => {
+    const isStandalone = window.matchMedia(
+      "(display-mode: standalone)"
+    ).matches;
+    const isFullscreen = window.matchMedia(
+      "(display-mode: fullscreen)"
+    ).matches;
+    const isMinimalUI = window.matchMedia("(display-mode: minimal-ui)").matches;
+    const hasNavigatorStandalone =
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+    return (
+      isStandalone || isFullscreen || isMinimalUI || hasNavigatorStandalone
+    );
+  };
+
   useEffect(() => {
     // Check if app is already installed
-    if (window.matchMedia("(display-mode: standalone)").matches) {
+    const installed = checkIfInstalled();
+    if (installed) {
       setIsInstalled(true);
     }
+
+    // Add a listener for display mode changes
+    const mediaQuery = window.matchMedia("(display-mode: standalone)");
+    const handleDisplayModeChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        setIsInstalled(true);
+      }
+    };
+    mediaQuery.addEventListener("change", handleDisplayModeChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleDisplayModeChange);
+    };
   }, []);
 
   const handleManualInstall = () => {
