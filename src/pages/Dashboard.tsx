@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, PURCHASE_LIMIT } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import QRCode from "@/components/QRCode";
 import { ArrowLeft } from "lucide-react";
@@ -50,7 +50,7 @@ const CircularProgress = ({ value, max }: { value: number; max: number }) => {
 };
 
 const Dashboard = () => {
-  const { user, loading, addPurchase, logout } = useAuth();
+  const { user, loading, addPurchase, logout, settings } = useAuth();
   const navigate = useNavigate();
   const [showFirstConfetti, setShowFirstConfetti] = useState(false);
   const prevPurchasesRef = React.useRef<number | null>(null);
@@ -58,6 +58,10 @@ const Dashboard = () => {
   const [confettiKey, setConfettiKey] = useState(0);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<"progress" | "card">("progress");
+
+  // Get user's purchase limit (individual or from settings)
+  const userPurchaseLimit =
+    user?.purchaseLimit || settings?.purchaseLimit || PURCHASE_LIMIT;
 
   useEffect(() => {
     // Only navigate if not loading and user is null
@@ -80,7 +84,7 @@ const Dashboard = () => {
         if (purchaseDiff > 0) {
           toast({
             title: "Purchase Updated! 📱",
-            description: `Your purchase count was updated via QR scan. New total: ${user.purchases}/5`,
+            description: `Your purchase count was updated via QR scan. New total: ${user.purchases}/${userPurchaseLimit}`,
           });
 
           // Show confetti for QR scan updates
@@ -89,7 +93,10 @@ const Dashboard = () => {
           setTimeout(() => setShowConfetti(false), 2500);
 
           // Navigate to rewards if reward is ready
-          if (user.isRewardReady && prevPurchasesRef.current < 5) {
+          if (
+            user.isRewardReady &&
+            prevPurchasesRef.current < userPurchaseLimit
+          ) {
             setTimeout(() => {
               toast({
                 title: "Reward Unlocked! 🎉",
@@ -107,7 +114,7 @@ const Dashboard = () => {
       }
       prevPurchasesRef.current = user.purchases;
     }
-  }, [user?.purchases, user?.isRewardReady, navigate]);
+  }, [user?.purchases, user?.isRewardReady, navigate, userPurchaseLimit]);
 
   // Show loading state while auth is initializing
   if (loading) {
@@ -124,15 +131,15 @@ const Dashboard = () => {
   // Don't render anything if user is null (will redirect to login)
   if (!user) return null;
 
-  const purchasesRemaining = Math.max(0, 5 - user.purchases);
+  const purchasesRemaining = Math.max(0, userPurchaseLimit - user.purchases);
 
   const handleAddPurchase = () => {
-    if (user.purchases >= 5) return;
+    if (user.purchases >= userPurchaseLimit) return;
     addPurchase();
     setShowConfetti(true);
     setConfettiKey((k) => k + 1);
     setTimeout(() => setShowConfetti(false), 2500);
-    if (user.purchases + 1 >= 5) {
+    if (user.purchases + 1 >= userPurchaseLimit) {
       toast({
         title: "Reward Unlocked! 🎉",
         description: "You've earned a reward! Check your rewards page.",
@@ -142,7 +149,7 @@ const Dashboard = () => {
       toast({
         title: "Purchase Added!",
         description: `${
-          4 - user.purchases
+          userPurchaseLimit - 1 - user.purchases
         } more purchases until your next reward!`,
       });
     }
@@ -182,13 +189,31 @@ const Dashboard = () => {
             <h1 className="ml-4 text-2xl font-bold text-white">Dashboard</h1>
           </div>
           <div className="flex gap-2">
-            {user.email === "admin@vpmaster.com" && (
+            {(user.role === "admin" || user.role === "super_admin") && (
+              <>
+                <Button
+                  onClick={() => navigate("/scan")}
+                  variant="outline"
+                  className="border-green-500 text-green-400 hover:bg-green-500 hover:text-white"
+                >
+                  Scan
+                </Button>
+                <Button
+                  onClick={() => navigate("/settings")}
+                  variant="outline"
+                  className="border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white"
+                >
+                  Settings
+                </Button>
+              </>
+            )}
+            {user.role === "super_admin" && (
               <Button
-                onClick={() => navigate("/scan")}
+                onClick={() => navigate("/users")}
                 variant="outline"
-                className="border-green-500 text-green-400 hover:bg-green-500 hover:text-white"
+                className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white"
               >
-                Scan
+                Users
               </Button>
             )}
             <Button
@@ -273,7 +298,10 @@ const Dashboard = () => {
                         className="absolute w-36 h-36 rounded-full bg-gradient-to-tr from-red-500/40 via-pink-400/20 to-purple-700/10 blur-2xl animate-pulse"
                         style={{ animationDuration: "3s" }}
                       />
-                      <CircularProgress value={user.purchases} max={5} />
+                      <CircularProgress
+                        value={user.purchases}
+                        max={userPurchaseLimit}
+                      />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-4xl mb-5 mr-3 font-extrabold text-white drop-shadow-[0_2px_8px_#000a] animate-pulse">
                           {user.purchases}
@@ -282,16 +310,17 @@ const Dashboard = () => {
                     </div>
                     <div className="mt-2 flex flex-col items-center">
                       <span className="text-base text-gray-300 font-semibold tracking-wide">
-                        of 5 Purchases
+                        of {userPurchaseLimit} Purchases
                       </span>
                     </div>
                   </div>
 
                   <div className="text-center space-y-4">
                     <p className="text-gray-400 text-sm max-w-xs">
-                      {user.purchases >= 5
+                      {user.purchases >= userPurchaseLimit
                         ? "🎉 You've earned a reward! Check your rewards page."
-                        : `Complete ${purchasesRemaining} more purchase${
+                        : settings?.descriptionMessage ||
+                          `Complete ${purchasesRemaining} more purchase${
                             purchasesRemaining === 1 ? "" : "s"
                           } to unlock your reward.`}
                     </p>

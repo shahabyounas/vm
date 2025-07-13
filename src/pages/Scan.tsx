@@ -67,6 +67,7 @@ const Scan = () => {
         name: userData.name,
         email: userData.email,
         currentPurchases: userData.purchases || 0,
+        purchaseLimit: userData.purchaseLimit || 5,
       });
 
       // Update user rewards using transaction
@@ -76,7 +77,9 @@ const Scan = () => {
         const freshUserData = freshSnap.data();
         const currentPurchases = freshUserData.purchases || 0;
         const newPurchases = currentPurchases + 1;
-        const isRewardReady = newPurchases >= 5;
+        // Use user's individual purchase limit
+        const userPurchaseLimit = freshUserData.purchaseLimit || 5;
+        const isRewardReady = newPurchases >= userPurchaseLimit;
         transaction.update(userRef, {
           purchases: newPurchases,
           isRewardReady,
@@ -96,11 +99,12 @@ const Scan = () => {
       );
       const finalUserData = finalUserSnap.docs[0].data();
       const purchaseCount = finalUserData?.purchases || 0;
+      const userPurchaseLimit = finalUserData?.purchaseLimit || 5;
       let successMessage = `Loyalty point added! Total purchases: ${purchaseCount}`;
-      if (purchaseCount >= 5) {
+      if (purchaseCount >= userPurchaseLimit) {
         successMessage += " - Reward ready! 🎉";
       } else {
-        const remaining = 5 - purchaseCount;
+        const remaining = userPurchaseLimit - purchaseCount;
         successMessage += ` - ${remaining} more to earn reward`;
       }
       toast({
@@ -145,22 +149,31 @@ const Scan = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 relative overflow-hidden">
+      {/* Background effects */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 right-10 w-40 h-40 bg-red-500 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-32 left-10 w-32 h-32 bg-red-600 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
+
       <div className="relative z-10 min-h-screen flex flex-col">
-        <div className="p-6 flex items-center">
-          <Link
-            to="/"
-            className="text-red-400 hover:text-red-300 transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </Link>
-          <h1 className="ml-4 text-2xl font-bold text-white">
-            Scan Loyalty QR
-          </h1>
+        {/* Header */}
+        <div className="bg-gray-900/80 backdrop-blur-sm border-b border-red-900/30 sticky top-0 z-10">
+          <div className="p-6 flex items-center justify-between">
+            <div className="flex items-center">
+              <Link
+                to="/dashboard"
+                className="text-red-400 hover:text-red-300 transition-colors"
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </Link>
+              <h1 className="ml-4 text-2xl font-bold text-white">
+                Scan Loyalty QR
+              </h1>
+            </div>
+          </div>
         </div>
+
+        {/* Main Content */}
         <div className="flex-1 flex flex-col items-center justify-center px-6">
           <div className="w-full max-w-md bg-gray-900/80 backdrop-blur-sm border border-red-900/30 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
             <h2 className="text-2xl font-bold text-white mb-4">

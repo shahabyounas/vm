@@ -9,6 +9,8 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Rewards from "./pages/Rewards";
+import Settings from "./pages/Settings";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 import Scan from "./pages/Scan";
 
@@ -29,6 +31,8 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/rewards" element={<Rewards />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/users" element={<UserManagement />} />
             <Route path="/scan" element={<Scan />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
