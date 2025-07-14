@@ -24,7 +24,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <PWAInstall />
-        <BrowserRouter basename={import.meta.env.PROD ? "/vm" : "/"}>
+        <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/register" element={<Register />} />
