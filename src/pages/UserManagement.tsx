@@ -292,7 +292,7 @@ const UserManagement = () => {
                                 </SelectItem>
                               </SelectContent>
                             </Select>
-                            <Button
+                            {/* <Button
                               variant="destructive"
                               size="sm"
                               className="ml-2"
@@ -307,7 +307,7 @@ const UserManagement = () => {
                               {deletingUser === userData.id
                                 ? "Deleting..."
                                 : "Delete"}
-                            </Button>
+                            </Button> */}
                           </>
                         )}
                         {userData.id === user.id && (
