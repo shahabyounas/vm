@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Set base to '/vm/' for GitHub Pages deployment to /vm/ subdirectory in production only
   base: mode === 'production' ? '/vm/' : '/',
   build: {
     outDir: 'dist',

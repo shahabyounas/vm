@@ -1,6 +1,6 @@
 {
-  "name": "Vaporwave Loyalty Club",
-  "short_name": "Loyalty Club",
+  "name": "VM",
+  "short_name": "VM",
   "description": "Earn rewards and scan QR codes with the Vaporwave Loyalty Club app!",
   "start_url": ".",
   "scope": "/",
