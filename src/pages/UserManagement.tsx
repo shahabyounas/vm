@@ -17,6 +17,8 @@ import {
   query,
   orderBy,
   Timestamp,
+  doc,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/utils";
 
@@ -35,6 +37,11 @@ const UserManagement = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [updatingRole, setUpdatingRole] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   // Redirect if not super admin
   useEffect(() => {
@@ -130,6 +137,28 @@ const UserManagement = () => {
       });
     } finally {
       setUpdatingRole(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    setDeletingUser(userId);
+    try {
+      await deleteDoc(doc(db, "users", userId));
+      setUsers((prevUsers) => prevUsers.filter((u) => u.id !== userId));
+      toast({
+        title: "User Deleted",
+        description: "The user has been deleted successfully.",
+      });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete user. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingUser(null);
+      setConfirmDelete(null);
     }
   };
 
@@ -242,24 +271,44 @@ const UserManagement = () => {
 
                       <div className="flex items-center space-x-3">
                         {userData.id !== user.id && (
-                          <Select
-                            value={userData.role}
-                            onValueChange={(value: UserRole) =>
-                              handleRoleUpdate(userData.id, value)
-                            }
-                            disabled={updatingRole === userData.id}
-                          >
-                            <SelectTrigger className="w-32 bg-gray-700 border-gray-600 text-white">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-gray-800 border-gray-700">
-                              <SelectItem value="customer">Customer</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="super_admin">
-                                Super Admin
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <>
+                            <Select
+                              value={userData.role}
+                              onValueChange={(value: UserRole) =>
+                                handleRoleUpdate(userData.id, value)
+                              }
+                              disabled={updatingRole === userData.id}
+                            >
+                              <SelectTrigger className="w-32 bg-gray-700 border-gray-600 text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-gray-800 border-gray-700">
+                                <SelectItem value="customer">
+                                  Customer
+                                </SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="super_admin">
+                                  Super Admin
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="ml-2"
+                              disabled={deletingUser === userData.id}
+                              onClick={() =>
+                                setConfirmDelete({
+                                  id: userData.id,
+                                  name: userData.name,
+                                })
+                              }
+                            >
+                              {deletingUser === userData.id
+                                ? "Deleting..."
+                                : "Delete"}
+                            </Button>
+                          </>
                         )}
                         {userData.id === user.id && (
                           <span className="text-gray-500 text-sm">
@@ -282,6 +331,39 @@ const UserManagement = () => {
           </div>
         </div>
       </div>
+      {/* Confirmation Dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-gray-900 rounded-lg p-8 border border-red-700 shadow-xl w-full max-w-sm">
+            <h2 className="text-lg font-bold text-white mb-4">
+              Confirm Delete
+            </h2>
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-red-400">
+                {confirmDelete.name}
+              </span>
+              ? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="ghost"
+                onClick={() => setConfirmDelete(null)}
+                className="text-gray-300 hover:text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleDeleteUser(confirmDelete.id)}
+                disabled={deletingUser === confirmDelete.id}
+              >
+                {deletingUser === confirmDelete.id ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

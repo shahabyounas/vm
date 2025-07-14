@@ -499,7 +499,10 @@ const Dashboard = () => {
                         Real-time updates of all user loyalty progress
                       </p>
                     </div>
-                    <UserList users={allUsers} loading={allUsersLoading} />
+                    <UserList
+                      users={allUsers.filter((u) => u.role === "customer")}
+                      loading={allUsersLoading}
+                    />
                   </div>
                 )}
               </>
