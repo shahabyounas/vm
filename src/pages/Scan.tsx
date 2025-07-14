@@ -7,12 +7,13 @@ import {
   where,
   getDocs,
   doc,
-  runTransaction,
+  getDoc,
 } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Scanner } from "@yudiel/react-qr-scanner";
+import { useAuth } from "@/hooks/useAuth";
 
 const Scan = () => {
   const [result, setResult] = useState("");
@@ -20,6 +21,7 @@ const Scan = () => {
   const [scannedUser, setScannedUser] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
+  const { addPurchase } = useAuth();
 
   const handleDecode = async (data: unknown) => {
     if (isProcessing) return;
@@ -70,47 +72,31 @@ const Scan = () => {
         purchaseLimit: userData.purchaseLimit || 5,
       });
 
-      // Update user rewards using transaction
-      await runTransaction(db, async (transaction) => {
-        const freshSnap = await transaction.get(userRef);
-        if (!freshSnap.exists()) throw new Error("User not found");
-        const freshUserData = freshSnap.data();
-        const currentPurchases = freshUserData.purchases || 0;
-        const newPurchases = currentPurchases + 1;
-        // Use user's individual purchase limit
-        const userPurchaseLimit = freshUserData.purchaseLimit || 5;
-        const isRewardReady = newPurchases >= userPurchaseLimit;
-        transaction.update(userRef, {
-          purchases: newPurchases,
-          isRewardReady,
-          lastScanAt: new Date(),
-        });
-      });
+      // Add purchase using the new reward-based system
+      await addPurchase(email, uid);
 
       setScannedUser(email);
       setVerified(true);
-      // Show success message with purchase count
-      const finalUserSnap = await getDocs(
-        query(
-          collection(db, "users"),
-          where("email", "==", email),
-          where("id", "==", uid)
-        )
-      );
-      const finalUserData = finalUserSnap.docs[0].data();
-      const purchaseCount = finalUserData?.purchases || 0;
-      const userPurchaseLimit = finalUserData?.purchaseLimit || 5;
-      let successMessage = `Loyalty point added! Total purchases: ${purchaseCount}`;
-      if (purchaseCount >= userPurchaseLimit) {
-        successMessage += " - Reward ready! 🎉";
-      } else {
-        const remaining = userPurchaseLimit - purchaseCount;
-        successMessage += ` - ${remaining} more to earn reward`;
+
+      // Get updated user data to show current purchase count
+      const updatedUserSnap = await getDoc(userRef);
+      if (updatedUserSnap.exists()) {
+        const updatedUserData = updatedUserSnap.data();
+        const purchaseCount = updatedUserData.purchases || 0;
+        const userPurchaseLimit = updatedUserData.purchaseLimit || 5;
+        let successMessage = `Loyalty point added! Total purchases: ${purchaseCount}`;
+        if (purchaseCount >= userPurchaseLimit) {
+          successMessage += " - Reward ready! 🎉";
+        } else {
+          const remaining = userPurchaseLimit - purchaseCount;
+          successMessage += ` - ${remaining} more to earn reward`;
+        }
+        toast({
+          title: "Success",
+          description: successMessage,
+        });
       }
-      toast({
-        title: "Success",
-        description: successMessage,
-      });
+
       navigate("/dashboard");
     } catch (error) {
       console.error("Error processing QR scan:", error);

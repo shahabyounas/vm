@@ -19,6 +19,7 @@ import {
   collection,
   query,
   orderBy,
+  arrayUnion,
 } from "firebase/firestore";
 
 // Constants
@@ -30,6 +31,12 @@ export type UserRole = "customer" | "admin" | "super_admin";
 interface Reward {
   rewardId: string;
   claimedAt: Timestamp;
+  scanHistory: ScanEvent[]; // Scans that contributed to this reward
+}
+
+export interface ScanEvent {
+  scannedBy: string; // email or id of the admin/staff
+  timestamp: Timestamp;
 }
 
 export interface User {
@@ -44,6 +51,7 @@ export interface User {
   rewards?: Reward[];
   purchaseLimit?: number; // Store the limit when user was created
   role: UserRole; // User role: customer, admin, or super_admin
+  currentReward?: Reward; // Current reward being worked on
 }
 
 interface GlobalSettings {
@@ -67,7 +75,7 @@ interface AuthContextType {
     password: string,
     feedback?: string
   ) => Promise<User | null>;
-  addPurchase: () => Promise<void>;
+  addPurchase: (targetEmail?: string, targetUid?: string) => Promise<void>;
   useReward: () => Promise<void>;
   logout: () => Promise<void>;
   updateSettings: (
@@ -256,35 +264,92 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return newUser;
   };
 
-  const addPurchase = async () => {
-    if (!user) return;
-    const userRef = doc(db, "users", user.id);
-    const newPurchases = user.purchases + 1;
-    // Use user's original purchase limit (from when they registered) or current settings
+  const addPurchase = async (targetEmail?: string, targetUid?: string) => {
+    // If targetEmail and targetUid are provided, we're scanning another user
+    // Otherwise, we're adding a purchase for the current user
+    const isScanningOtherUser = targetEmail && targetUid;
+
+    if (!user && !isScanningOtherUser) return;
+
+    const userRef = isScanningOtherUser
+      ? doc(db, "users", targetUid)
+      : doc(db, "users", user!.id);
+
+    // Get the target user's data
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      throw new Error("User not found");
+    }
+
+    const targetUserData = userSnap.data();
     const userPurchaseLimit =
-      user.purchaseLimit || settings?.purchaseLimit || PURCHASE_LIMIT;
+      targetUserData.purchaseLimit || settings?.purchaseLimit || PURCHASE_LIMIT;
+
+    // Prevent scanning beyond the purchase limit
+    if (targetUserData.purchases >= userPurchaseLimit) {
+      console.log("Purchase limit reached, cannot add more scans");
+      return;
+    }
+
+    const newPurchases = targetUserData.purchases + 1;
     const isRewardReady = newPurchases >= userPurchaseLimit;
-    await updateDoc(userRef, {
-      purchases: increment(1),
-      isRewardReady,
-      lastScanAt: Timestamp.now(),
-    });
-    // The real-time listener will automatically update the user state
+
+    // Prepare scan event - use the scanner's email (current user) as scannedBy
+    const scanEvent = {
+      scannedBy: user?.email || "unknown",
+      timestamp: Timestamp.now(),
+    };
+
+    // If no current reward exists, create one
+    if (!targetUserData.currentReward) {
+      const newReward: Reward = {
+        rewardId: `reward_${Date.now()}`,
+        claimedAt: null, // Not claimed yet
+        scanHistory: [scanEvent],
+      };
+
+      await updateDoc(userRef, {
+        purchases: increment(1),
+        isRewardReady,
+        lastScanAt: Timestamp.now(),
+        currentReward: newReward,
+      });
+    } else {
+      // Add scan to existing current reward
+      const updatedScanHistory = [
+        ...(targetUserData.currentReward.scanHistory || []),
+        scanEvent,
+      ];
+      const updatedCurrentReward = {
+        ...targetUserData.currentReward,
+        scanHistory: updatedScanHistory,
+      };
+
+      await updateDoc(userRef, {
+        purchases: increment(1),
+        isRewardReady,
+        lastScanAt: Timestamp.now(),
+        currentReward: updatedCurrentReward,
+      });
+    }
   };
 
   const useReward = async () => {
-    if (!user) return;
+    if (!user || !user.currentReward) return;
     const userRef = doc(db, "users", user.id);
-    const reward = {
-      rewardId: `reward_${Date.now()}`,
+
+    // Mark current reward as claimed
+    const claimedReward = {
+      ...user.currentReward,
       claimedAt: Timestamp.now(),
     };
+
     await updateDoc(userRef, {
-      purchases: 0,
-      isRewardReady: false,
-      rewards: [...(user.rewards || []), reward],
+      purchases: 0, // Reset purchases to 0
+      isRewardReady: false, // Reset reward ready status
+      rewards: [...(user.rewards || []), claimedReward],
+      currentReward: null, // Clear current reward to start fresh
     });
-    // The real-time listener will automatically update the user state
   };
 
   const updateSettings = async (
