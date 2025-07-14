@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="theme-color" content="#ef4444" />
+    <link rel="manifest" href="/vaporwave-loyalty-club/manifest.json" />
+    <link rel="apple-touch-icon" href="/vaporwave-loyalty-club/icon-192x192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Vaporwave Loyalty Club" />
+    <meta name="apple-mobile-web-app-title" content="Loyalty Club" />
+    <meta name="msapplication-TileColor" content="#ef4444" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta
+      name="description"
+      content="Vaporwave Loyalty Club - Earn rewards and scan QR codes!"
+    />
+    <title>Vaporwave Loyalty Club</title>
+    <meta name="author" content="Lovable" />
+
+    <meta property="og:title" content="vaporwave-loyalty-club" />
+    <meta property="og:description" content="Lovable Generated Project" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:image"
+      content="https://lovable.dev/opengraph-image-p98pqg.png"
+    />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@lovable_dev" />
+    <meta
+      name="twitter:image"
+      content="https://lovable.dev/opengraph-image-p98pqg.png"
+    />
+
+    <!-- Start Single Page Apps for GitHub Pages -->
+    <script type="text/javascript">
+      // Single Page Apps for GitHub Pages
+      // MIT License
+      // https://github.com/rafgraph/spa-github-pages
+      // This script checks to see if a redirect is present in the query string,
+      // converts it back into the correct url and adds it to the
+      // browser's history using window.history.replaceState(...),
+      // which won't cause the browser to attempt to load the new url.
+      // When the single page app is loaded further down in this file,
+      // the correct url will be waiting in the browser's history for
+      // the single page app to route accordingly.
+      (function (l) {
+        if (l.search[1] === "/") {
+          var decoded = l.search
+            .slice(1)
+            .split("&")
+            .map(function (s) {
+              return s.replace(/~and~/g, "&");
+            })
+            .join("?");
+          window.history.replaceState(
+            null,
+            null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      })(window.location);
+    </script>
+    <!-- End Single Page Apps for GitHub Pages -->
+    <script type="module" crossorigin src="/vaporwave-loyalty-club/assets/index-C1Yug1VR.js"></script>
+    <link rel="stylesheet" crossorigin href="/vaporwave-loyalty-club/assets/index-NdXZmg_C.css">
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then(function (registration) {
+              console.log(
+                "ServiceWorker registration successful with scope: ",
+                registration.scope
+              );
+            })
+            .catch(function (error) {
+              console.log("ServiceWorker registration failed:", error);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>
