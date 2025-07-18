@@ -1,4 +1,4 @@
-const CACHE_NAME = "vaporwave-loyalty-v2";
+const CACHE_NAME = "vaporwave-loyalty-v3"; // Bump this on every deploy
 const urlsToCache = [
   "/",
   "/index.html",
@@ -50,6 +50,12 @@ self.addEventListener("activate", (event) => {
       .then(() => {
         console.log("Service Worker activated");
         return self.clients.claim();
+      })
+      .then(() => {
+        // Force all clients to reload and get the new files
+        return self.clients.matchAll({ type: "window" }).then((clients) => {
+          clients.forEach((client) => client.navigate(client.url));
+        });
       })
   );
 });
