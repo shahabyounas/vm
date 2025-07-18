@@ -22,7 +22,7 @@ const MenuBarActions: React.FC<MenuBarActionsProps> = ({
   return (
     <Menubar>
       <MenubarMenu>
-        <MenubarTrigger className="bg-transparent text-white border border-white">
+        <MenubarTrigger className="bg-transparent text-black border border-white">
           Menu
         </MenubarTrigger>
         <MenubarContent>

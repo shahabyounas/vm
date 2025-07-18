@@ -35,7 +35,7 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({ user, lastUpdateTime }) => (
             .toUpperCase() || <UserIcon />}
         </AvatarFallback>
       </Avatar>
-      <CardTitle>Welcome, {user.name}!</CardTitle>
+      <CardTitle className="text-white">Welcome, {user.name}!</CardTitle>
       <CardDescription>Your loyalty card is ready to use</CardDescription>
     </CardHeader>
     <CardContent className="relative z-10">
