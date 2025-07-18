@@ -15,7 +15,7 @@ interface WelcomeCardProps {
 }
 
 const WelcomeCard: React.FC<WelcomeCardProps> = ({ user, lastUpdateTime }) => (
-  <Card className="mb-6 bg-gray-900/80 backdrop-blur-sm border border-red-900/30 text-center relative overflow-hidden">
+  <Card className="my-6 bg-gray-900/80 backdrop-blur-sm border border-red-900/30 text-center relative overflow-hidden">
     {/* Subtle radial gradient accent */}
     <div
       className="absolute inset-0 pointer-events-none"

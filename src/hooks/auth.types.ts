@@ -57,6 +57,7 @@ export interface AuthContextType {
   useReward: () => Promise<void>;
   logout: () => Promise<void>;
   updateSettings: (
+    user: User,
     purchaseLimit: number,
     descriptionMessage: string
   ) => Promise<void>;

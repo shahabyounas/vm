@@ -16,11 +16,7 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const db = getFirestore(app);
 export const auth = getAuth(app);
-
-// Set auth persistence to local (across tabs and refreshes)
-setPersistence(auth, browserLocalPersistence).catch((error) => {
-  console.error('Error setting auth persistence:', error);
-});
+setPersistence(auth, browserLocalPersistence);
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

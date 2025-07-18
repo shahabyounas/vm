@@ -62,8 +62,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Auth state and user real-time listener
   useEffect(() => {
     let unsubscribeSnapshot: (() => void) | null = null;
+    let didResolveAuth = false;
     const unsubscribeAuth = subscribeToAuthState(
       async (firebaseUser: unknown) => {
+        if (!didResolveAuth) didResolveAuth = true;
         if (
           firebaseUser &&
           typeof firebaseUser === "object" &&
@@ -93,11 +95,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
     );
+    // Fallback: If onAuthStateChanged never fires, set loading to false after a timeout (should not happen in practice)
+    const timeout = setTimeout(() => {
+      if (!didResolveAuth) setLoading(false);
+    }, 10000);
     return () => {
       if (unsubscribeAuth) unsubscribeAuth();
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
       }
+      clearTimeout(timeout);
     };
   }, []);
 
@@ -109,6 +116,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     password: string,
     feedback?: string
   ) => registerUser(name, email, password, feedback, settings);
+  const addPurchaseWithUser = (targetEmail?: string, targetUid?: string) =>
+    addPurchase(user, settings, targetEmail, targetUid);
+  const useRewardWithUser = () => useReward(user);
+  const updateUserRoleWithUser = (
+    userId: string,
+    newRole: import("./auth.types").UserRole
+  ) => updateUserRole(user, userId, newRole);
   const logout = async () => {
     await logoutUser();
     setUser(null);
@@ -125,11 +139,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         allUsersLoading,
         login,
         register,
-        addPurchase,
-        useReward,
+        addPurchase: addPurchaseWithUser,
+        useReward: useRewardWithUser,
         logout,
         updateSettings,
-        updateUserRole,
+        updateUserRole: updateUserRoleWithUser,
       }}
     >
       {children}

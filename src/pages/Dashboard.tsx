@@ -9,6 +9,10 @@ import LoyaltyCard from "@/components/LoyaltyCard";
 import Loader from "@/components/Loader";
 import MenuBarActions from "@/components/MenuBarActions";
 import WelcomeCard from "@/components/WelcomeCard";
+import HeaderSkeleton from "@/components/HeaderSkeleton";
+import WelcomeCardSkeleton from "@/components/WelcomeCardSkeleton";
+import DashboardTabsSkeleton from "@/components/DashboardTabsSkeleton";
+import ProgressCardSkeleton from "@/components/ProgressCardSkeleton";
 
 const Dashboard = () => {
   // Only destructure from useDashboard what is actually used in Dashboard.tsx
@@ -29,17 +33,28 @@ const Dashboard = () => {
     navigate,
   } = useDashboard();
 
-  // Derived conditions for clarity
-  const isProgressTab = activeTab === "progress";
-  const isCustomer = user.role === "customer";
-
   // Show loading state while auth is initializing
   if (loading) {
-    return <Loader />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 relative overflow-hidden">
+        <HeaderSkeleton />
+        <div className="flex-1 px-6 pb-6">
+          <div className="max-w-md mx-auto">
+            <WelcomeCardSkeleton />
+            <DashboardTabsSkeleton />
+            <ProgressCardSkeleton />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Don't render anything if user is null (will redirect to login)
   if (!user) return null;
+
+  // Derived conditions for clarity
+  const isProgressTab = activeTab === "progress";
+  const isCustomer = user.role === "customer";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 relative overflow-hidden">

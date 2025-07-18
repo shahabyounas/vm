@@ -71,12 +71,13 @@ const Settings = () => {
 
     setIsSaving(true);
     try {
-      await updateSettings(purchaseLimit, descriptionMessage.trim());
+      await updateSettings(user, purchaseLimit, descriptionMessage.trim());
       toast({
         title: "Settings Updated",
         description: "Global settings have been saved successfully!",
       });
     } catch (error) {
+      console.log("usser", user);
       console.error("Error updating settings:", error);
       toast({
         title: "Update Failed",
@@ -140,7 +141,7 @@ const Settings = () => {
                       Purchase Limit
                     </Label>
                     <div className="text-sm text-gray-400">
-                      Current: {settings?.purchaseLimit || 5}
+                      Current: {settings?.purchaseLimit || 10}
                     </div>
                   </div>
                   <div className="space-y-2">

@@ -33,7 +33,7 @@ const DashboardTabs: React.FC<DashboardTabsProps> = ({
             }`}
             onClick={() => setActiveTab("card")}
           >
-            Loyalty Card
+            Loyalty Rewards
           </button>
         </>
       ) : (
@@ -56,7 +56,7 @@ const DashboardTabs: React.FC<DashboardTabsProps> = ({
             }`}
             onClick={() => setActiveTab("card")}
           >
-            Loyalty Card
+            Loyalty Rewards
           </button>
         </>
       )}
