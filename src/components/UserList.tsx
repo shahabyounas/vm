@@ -56,7 +56,7 @@ const UserList = ({ users, loading }: { users: User[]; loading: boolean }) => {
             key={user.id}
             className="bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-lg p-4 hover:bg-gray-800/80 transition-all duration-200"
           >
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center flex-wrap justify-between mb-3">
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
                   {getRoleIcon(user.role)}
@@ -78,7 +78,7 @@ const UserList = ({ users, loading }: { users: User[]; loading: boolean }) => {
             </div>
 
             <div className="mb-3">
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center flex-wrap justify-between mb-1">
                 <span className="font-semibold text-white">{user.name}</span>
                 <span className="text-sm text-gray-400">{user.email}</span>
               </div>
@@ -101,7 +101,7 @@ const UserList = ({ users, loading }: { users: User[]; loading: boolean }) => {
                 ></div>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex items-center flex-wrap justify-between text-xs text-gray-500">
                 <span>{user.rewards?.length || 0} rewards claimed</span>
                 <span>
                   {user.isRewardReady
