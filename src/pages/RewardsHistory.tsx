@@ -60,7 +60,7 @@ const RewardDetailModal = ({
           <div className="mt-2 text-sm text-gray-400">
             <p>Reward ID: {reward.rewardId}</p>
             {reward.claimedAt && (
-              <p>
+              <p className="text-green-600">
                 Claimed:{" "}
                 {reward.claimedAt.toDate
                   ? new Date(reward.claimedAt.toDate()).toLocaleString()
@@ -78,21 +78,49 @@ const RewardDetailModal = ({
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm text-left text-gray-300">
                   <thead>
-                    <tr className="border-b border-gray-700">
-                      <th className="px-4 py-3 font-semibold">Scan #</th>
-                      <th className="px-4 py-3 font-semibold">Scanned By</th>
-                      <th className="px-4 py-3 font-semibold">Date & Time</th>
+                    <tr className="border-b justify-between border-gray-700 md:table-row flex flex-col md:flex-row">
+                      <th className="px-4 py-3 font-semibold flex flex-col md:table-cell text-center md:text-left">
+                        <span className="block md:hidden text-xs text-gray-400">
+                          Scan #
+                        </span>
+                        <span className="hidden md:block">Scan #</span>
+                      </th>
+                      <th className="px-4 py-3 font-semibold flex flex-col md:table-cell text-center md:text-left">
+                        <span className="block md:hidden text-xs text-gray-400">
+                          Scanned By
+                        </span>
+                        <span className="hidden md:block">Scanned By</span>
+                      </th>
+                      <th className="px-4 py-3 font-semibold flex flex-col md:table-cell text-center md:text-left">
+                        <span className="block md:hidden text-xs text-gray-400">
+                          Date & Time
+                        </span>
+                        <span className="hidden md:block">Date & Time</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {reward.scanHistory.map((scan, idx) => (
                       <tr
                         key={scan.timestamp?.seconds + scan.scannedBy}
-                        className="border-b border-gray-800 hover:bg-gray-800/50"
+                        className="border-b border-gray-800 hover:bg-gray-800/50 md:table-row flex flex-col md:flex-row justify-center text-center md:text-left"
                       >
-                        <td className="px-4 py-3 font-medium">{idx + 1}</td>
-                        <td className="px-4 py-3">{scan.scannedBy}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 font-medium flex flex-col md:table-cell items-center md:items-start">
+                          <span className="block text-xs text-gray-400 md:hidden">
+                            Scan #
+                          </span>
+                          {idx + 1}
+                        </td>
+                        <td className="px-4 py-3 flex flex-col md:table-cell items-center md:items-start">
+                          <span className="block text-xs text-gray-400 md:hidden">
+                            Scanned By
+                          </span>
+                          {scan.scannedBy}
+                        </td>
+                        <td className="px-4 py-3 flex flex-col md:table-cell items-center md:items-start">
+                          <span className="block text-xs text-gray-400 md:hidden">
+                            Date & Time
+                          </span>
                           {scan.timestamp?.toDate
                             ? new Date(scan.timestamp.toDate()).toLocaleString()
                             : ""}
@@ -144,11 +172,11 @@ const RewardHistoryTable = ({
             className="border border-gray-700 rounded-lg p-3 cursor-pointer hover:bg-gray-800/50 transition-colors"
             onClick={() => onRewardClick(reward)}
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-center justify-between mb-2">
               <h5 className="text-sm font-medium text-white">
                 Reward #{rewards.length - idx} - {reward.rewardId}
               </h5>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-green-500 text-gray-400">
                 Claimed:{" "}
                 {reward.claimedAt && reward.claimedAt.toDate
                   ? new Date(reward.claimedAt.toDate()).toLocaleString()
@@ -176,14 +204,14 @@ const RewardsHistory = ({ allUsers }: { allUsers: User[] }) => {
   const [showRewardModal, setShowRewardModal] = useState(false);
 
   return (
-    <div className="bg-gradient-to-br from-gray-900/90 via-black/80 to-red-950/90 border border-red-900/40 rounded-none p-10 min-h-[460px] flex flex-col justify-center -mt-0 shadow-2xl">
-      <h3 className="text-2xl font-bold text-white mb-6">Rewards History</h3>
-      <div className="space-y-6">
+    <div className="bg-gradient-to-br from-gray-900/90 via-black/80 to-red-950/90 border border-red-900/40 rounded-none p-6 min-h-[460px] flex flex-col justify-start -mt-0 shadow-2xl">
+      <h3 className="text-2xl font-bold text-white mb-4">Rewards History</h3>
+      <div className="space-y-2">
         {allUsers
           .filter((u) => u.role === "customer")
           .map((u) => (
             <div key={u.id} className="bg-gray-800/60 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-wrap items-center justify-between mb-2">
                 <span className="font-semibold text-white">
                   {u.name} ({u.email})
                 </span>

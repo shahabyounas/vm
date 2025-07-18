@@ -3,6 +3,7 @@ import * as user from './user';
 import * as scan from './scan';
 import * as rewards from './rewards';
 import * as settings from './settings';
+import * as admin from './admin';
 
 // Helper to wrap async functions with error handling and preserve types
 function withErrorHandling<T extends (...args: unknown[]) => Promise<unknown>>(fn: T, name: string): T {
@@ -35,4 +36,6 @@ export const useReward = withErrorHandling(rewards.useReward, 'useReward');
 
 // Settings
 export const fetchGlobalSettings = settings.fetchGlobalSettings;
-export const updateSettings = withErrorHandling(settings.updateSettings, 'updateSettings'); 
+export const updateSettings = withErrorHandling(settings.updateSettings, 'updateSettings');
+
+export const resetAllData = admin.resetAllData; 

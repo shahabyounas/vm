@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Settings as SettingsIcon } from "lucide-react";
+import { resetAllData } from "@/db/adapter";
 
 const Settings = () => {
   const { user, loading, settings, settingsLoading, updateSettings } =
@@ -15,6 +16,7 @@ const Settings = () => {
   const [purchaseLimit, setPurchaseLimit] = useState(5);
   const [descriptionMessage, setDescriptionMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   // Redirect if not admin
   useEffect(() => {
@@ -86,6 +88,32 @@ const Settings = () => {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleResetAll = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete ALL data? This cannot be undone!"
+      )
+    )
+      return;
+    setResetting(true);
+    try {
+      await resetAllData(user);
+      toast({
+        title: "All Data Reset",
+        description: "All user data has been deleted.",
+        variant: "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Reset Failed",
+        description: error?.message || "Failed to reset all data.",
+        variant: "destructive",
+      });
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -242,6 +270,26 @@ const Settings = () => {
                     original purchase limits to maintain fairness.
                   </p>
                 </div>
+
+                {/* Reset All Data (Super Admin Only) */}
+                {user.role === "super_admin" && (
+                  <div className="flex justify-center pt-8">
+                    <Button
+                      onClick={handleResetAll}
+                      disabled={resetting}
+                      className="bg-gradient-to-r from-red-800 to-red-900 hover:from-red-900 hover:to-black text-white font-semibold px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+                    >
+                      {resetting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Resetting...
+                        </>
+                      ) : (
+                        <>Delete ALL Data</>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
