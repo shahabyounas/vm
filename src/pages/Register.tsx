@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -16,6 +17,10 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { register, user, loading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    trackEvent("page_view", { page: "Register" });
+  }, []);
 
   // Redirect to dashboard if already logged in
   if (!loading && user) {
@@ -43,12 +48,14 @@ const Register = () => {
         description: "Please fill in your name, email, and password.",
         variant: "destructive",
       });
+      trackEvent("register_missing_info");
       return;
     }
 
     setIsLoading(true);
 
     try {
+      trackEvent("register_attempt", { email });
       await register(
         name.trim(),
         email.trim(),
@@ -58,6 +65,10 @@ const Register = () => {
       toast({
         title: "Welcome to Vape Master!",
         description: "Your loyalty card is ready!",
+      });
+      trackEvent("register_success", {
+        user_id: user.id,
+        user_role: user.role,
       });
       navigate("/dashboard");
     } catch (error: unknown) {
@@ -75,6 +86,7 @@ const Register = () => {
         description: message,
         variant: "destructive",
       });
+      trackEvent("register_failed", { email, error: message });
     } finally {
       setIsLoading(false);
     }

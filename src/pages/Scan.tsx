@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { db } from "@/lib/utils";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { useAuth } from "@/hooks/useAuth";
+import { trackEvent } from "@/lib/analytics";
 
 const Scan = () => {
   const [result, setResult] = useState("");
@@ -22,6 +23,10 @@ const Scan = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
   const { addPurchase } = useAuth();
+
+  useEffect(() => {
+    trackEvent("page_view", { page: "Scan" });
+  }, []);
 
   const handleDecode = async (data: unknown) => {
     if (isProcessing) return;
@@ -40,11 +45,13 @@ const Scan = () => {
         throw new Error("Invalid QR scan result format");
       }
       const rawValue = data[0].rawValue;
-      console.log("QR Code scanned rawValue:", rawValue);
+      // Analytics: QR code scanned
+      trackEvent("scan_qr_attempt", { rawValue });
 
       // Assume QR code is: LOYALTY:{email}:{uid}
       const parts = rawValue.split(":");
       if (parts.length < 3 || parts[0] !== "LOYALTY") {
+        trackEvent("scan_qr_invalid", { rawValue });
         throw new Error("Invalid QR code format - must be LOYALTY:email:uid");
       }
       const email = parts[1];
@@ -61,16 +68,13 @@ const Scan = () => {
         )
       );
       if (userSnap.empty) {
+        trackEvent("scan_qr_no_user", { email, uid });
         throw new Error("No user found for this QR code");
       }
       const userDoc = userSnap.docs[0];
       const userData = userDoc.data();
-      console.log("Current user data:", {
-        name: userData.name,
-        email: userData.email,
-        currentPurchases: userData.purchases || 0,
-        purchaseLimit: userData.purchaseLimit || 5,
-      });
+      // Analytics: QR code valid and user found
+      trackEvent("scan_qr_success", { scanned_user: email, scanned_uid: uid });
 
       // Add purchase using the new reward-based system
       await addPurchase(email, uid);
@@ -87,6 +91,7 @@ const Scan = () => {
         let successMessage = `Loyalty point added! Total purchases: ${purchaseCount}`;
         if (purchaseCount >= userPurchaseLimit) {
           successMessage += " - Reward ready! 🎉";
+          trackEvent("reward_ready", { scanned_user: email, scanned_uid: uid });
         } else {
           const remaining = userPurchaseLimit - purchaseCount;
           successMessage += ` - ${remaining} more to earn reward`;
@@ -110,6 +115,7 @@ const Scan = () => {
         description: message,
         variant: "destructive",
       });
+      trackEvent("scan_qr_error", { error: (error as Error).message });
     } finally {
       setIsProcessing(false);
     }
@@ -124,6 +130,7 @@ const Scan = () => {
       description: "Camera error - please check permissions",
       variant: "destructive",
     });
+    trackEvent("scan_qr_scanner_error", { error: String(err) });
   };
 
   const resetScanner = () => {

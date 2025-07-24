@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -13,6 +14,10 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, user, loading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    trackEvent("page_view", { page: "Login" });
+  }, []);
 
   // Redirect to dashboard if already logged in
   if (!loading && user) {
@@ -40,16 +45,19 @@ const Login = () => {
         description: "Please enter your email and password.",
         variant: "destructive",
       });
+      trackEvent("login_missing_info");
       return;
     }
     setIsLoading(true);
     try {
+      trackEvent("login_attempt", { email });
       const user = await login(email.trim(), password.trim());
       if (user) {
         toast({
           title: "Welcome back!",
           description: `Good to see you again, ${user.name}!`,
         });
+        trackEvent("login_success", { user_id: user.id, user_role: user.role });
         navigate("/dashboard");
       } else {
         toast({
@@ -58,6 +66,7 @@ const Login = () => {
             "No account found with this email. Please register first.",
           variant: "destructive",
         });
+        trackEvent("login_user_not_found", { email });
       }
     } catch (error: unknown) {
       let message = "Please try again.";
@@ -74,6 +83,7 @@ const Login = () => {
         description: message,
         variant: "destructive",
       });
+      trackEvent("login_failed", { email, error: message });
     } finally {
       setIsLoading(false);
     }

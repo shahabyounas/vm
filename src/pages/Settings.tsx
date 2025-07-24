@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Settings as SettingsIcon } from "lucide-react";
 import { resetAllData } from "@/db/adapter";
+import { trackEvent } from "@/lib/analytics";
 
 const Settings = () => {
   const { user, loading, settings, settingsLoading, updateSettings } =
@@ -17,6 +18,10 @@ const Settings = () => {
   const [descriptionMessage, setDescriptionMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
+
+  useEffect(() => {
+    trackEvent("page_view", { page: "Settings" });
+  }, []);
 
   // Redirect if not admin
   useEffect(() => {
@@ -59,6 +64,7 @@ const Settings = () => {
         description: "Purchase limit must be at least 1",
         variant: "destructive",
       });
+      trackEvent("settings_invalid_purchase_limit");
       return;
     }
 
@@ -68,6 +74,7 @@ const Settings = () => {
         description: "Please enter a description message",
         variant: "destructive",
       });
+      trackEvent("settings_missing_description");
       return;
     }
 
@@ -78,6 +85,7 @@ const Settings = () => {
         title: "Settings Updated",
         description: "Global settings have been saved successfully!",
       });
+      trackEvent("settings_updated", { user_id: user.id, purchaseLimit });
     } catch (error) {
       console.log("usser", user);
       console.error("Error updating settings:", error);
@@ -85,6 +93,10 @@ const Settings = () => {
         title: "Update Failed",
         description: "Failed to update settings. Please try again.",
         variant: "destructive",
+      });
+      trackEvent("settings_update_failed", {
+        user_id: user.id,
+        error: error?.message,
       });
     } finally {
       setIsSaving(false);
@@ -106,11 +118,16 @@ const Settings = () => {
         description: "All user data has been deleted.",
         variant: "destructive",
       });
+      trackEvent("reset_all_data", { user_id: user.id });
     } catch (error) {
       toast({
         title: "Reset Failed",
         description: error?.message || "Failed to reset all data.",
         variant: "destructive",
+      });
+      trackEvent("reset_all_data_failed", {
+        user_id: user.id,
+        error: error?.message,
       });
     } finally {
       setResetting(false);
