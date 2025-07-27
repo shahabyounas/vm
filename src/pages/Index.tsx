@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import PWAGuide from "@/components/PWAGuide";
 import { Download } from "lucide-react";
+import logo from "../../public/logo.png";
 import { useEffect, useState } from "react";
 
 const Index = () => {
@@ -68,7 +69,16 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background Cover Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url(/bgCover.jpeg)" }}
+      ></div>
+
+      {/* Dark overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/60"></div>
+
       {/* Smoke background effects */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-10 left-10 w-32 h-32 bg-red-500 rounded-full blur-3xl animate-pulse"></div>
@@ -78,19 +88,22 @@ const Index = () => {
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center">
         {/* Logo/Title */}
-        <div className="mb-8">
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-4 tracking-tight">
-            VAPE <span className="text-red-500">MASTER</span>
-          </h1>
-          <div className="w-32 h-1 bg-gradient-to-r from-red-500 to-red-700 mx-auto rounded-full"></div>
+        <div>
+          <div className="flex justify-center mb-4">
+            <img
+              src="/logo.png"
+              alt="Vape Master Logo"
+              className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 object-contain"
+            />
+          </div>
         </div>
 
         {/* Welcome Message */}
         <div className="mb-12 max-w-md">
-          <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4">
+          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-semibold text-white mb-4">
             Loyalty Program
           </h2>
-          <p className="text-gray-300 text-lg leading-relaxed">
+          <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl leading-relaxed">
             Join our loyalty program and get rewards! Earn points with every
             purchase and unlock exclusive benefits.
           </p>
