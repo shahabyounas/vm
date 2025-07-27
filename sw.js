@@ -1,4 +1,4 @@
-const CACHE_NAME = "vaporwave-loyalty-v3"; // Bump this on every deploy
+const CACHE_NAME = "vaporwave-loyalty-v4"; // Bump this on every deploy
 const urlsToCache = [
   "/",
   "/index.html",
