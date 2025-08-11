@@ -4,6 +4,11 @@ on:
   push:
     branches: [main, develop]
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 env:
   NODE_VERSION: "18"
   PRODUCTION_DOMAIN: "vapemasters.shop"
@@ -42,6 +47,8 @@ jobs:
           publish_branch: gh-pages-staging
           cname: ${{ env.STAGING_DOMAIN }}
           force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
 
   # Build and Deploy to Production
   deploy-production:
@@ -75,3 +82,5 @@ jobs:
           publish_branch: gh-pages
           cname: ${{ env.PRODUCTION_DOMAIN }}
           force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
