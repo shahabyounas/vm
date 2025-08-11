@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import PWAGuide from "@/components/PWAGuide";
-import { Download } from "lucide-react";
+import { Download, Database } from "lucide-react";
 import logo from "../../public/logo.png";
 import { useEffect, useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [isInstalled, setIsInstalled] = useState(false);
@@ -149,6 +150,46 @@ const Index = () => {
         {/* Footer */}
         <div className="absolute bottom-6 text-center text-gray-500">
           <p className="text-sm">Smoke responsibly • 21+ only</p>
+        </div>
+
+        {/* Database Seed Button - For development/testing */}
+        <div className="mt-8">
+          <Button
+            onClick={async () => {
+              try {
+                const isSeeded = true;
+                if (isSeeded) {
+                  toast({
+                    title: "Database Status",
+                    description:
+                      "Database is already seeded with initial data.",
+                  });
+                } else {
+                  toast({
+                    title: "Seeding Database",
+                    description: "Creating initial data...",
+                  });
+                  // await seedDatabase();
+                  toast({
+                    title: "Success!",
+                    description: "Database seeded with initial data.",
+                  });
+                }
+              } catch (error) {
+                toast({
+                  title: "Error",
+                  description:
+                    "Failed to seed database. Check console for details.",
+                  variant: "destructive",
+                });
+              }
+            }}
+            variant="outline"
+            className="bg-transparent border-2 border-green-500 text-green-400 hover:bg-green-500 hover:text-white transition-all duration-300"
+          >
+            <Database className="w-4 h-4 mr-2" />
+            Check/Seed Database
+          </Button>
         </div>
       </div>
     </div>

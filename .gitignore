@@ -24,3 +24,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Database seed files (contain production credentials)
+scripts/seed.js
+src/db/seed.ts

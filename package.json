@@ -12,7 +12,10 @@
     "preview": "vite preview",
     "predeploy": "npm run build:prod",
     "deploy": "gh-pages -d dist",
-    "test": "jest"
+    "test": "jest",
+    "seed": "node scripts/seed.js",
+    "seed:check": "node -e \"import('./scripts/seed.js').then(m => console.log('Database seeded:', m.isDatabaseSeeded ? 'Yes' : 'No'))\"",
+    "seed:reset": "node -e \"import('./scripts/seed.js').then(m => m.resetDatabase())\""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
