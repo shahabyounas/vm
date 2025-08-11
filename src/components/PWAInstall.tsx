@@ -60,11 +60,8 @@ const PWAInstall = () => {
       return;
     }
 
-    // Check if service worker is supported
-    if (!("serviceWorker" in navigator)) {
-      setDebugInfo("Service Worker not supported");
-      return;
-    }
+    // Service Worker removed - No caching system
+    // PWA installation still works without service worker
 
     // Check if manifest is accessible
     fetch("/manifest.json")

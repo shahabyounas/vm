@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,28 +14,14 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     trackEvent("page_view", { page: "Login" });
   }, []);
 
-  // Redirect to dashboard if already logged in
-  if (!loading && user) {
-    navigate("/dashboard");
-    return null;
-  }
-
-  // Show loading while auth is initializing
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  // PublicRoute component handles redirects for authenticated users
+  // No need for manual redirect logic here
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +44,9 @@ const Login = () => {
           description: `Good to see you again, ${user.name}!`,
         });
         trackEvent("login_success", { user_id: user.id, user_role: user.role });
-        navigate("/dashboard");
+        // Redirect to the page they were trying to access, or dashboard
+        const from = location.state?.from?.pathname || "/dashboard";
+        navigate(from, { replace: true });
       } else {
         toast({
           title: "User Not Found",

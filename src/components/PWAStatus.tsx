@@ -4,12 +4,10 @@ import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
 
 const PWAStatus = () => {
   const [status, setStatus] = useState<{
-    serviceWorker: boolean;
     manifest: boolean;
     https: boolean;
     standalone: boolean;
   }>({
-    serviceWorker: false,
     manifest: false,
     https: false,
     standalone: false,
@@ -18,12 +16,11 @@ const PWAStatus = () => {
   useEffect(() => {
     const checkPWAStatus = async () => {
       const newStatus = {
-        serviceWorker: "serviceWorker" in navigator,
         manifest: false,
         https:
           window.location.protocol === "https:" ||
           window.location.hostname === "localhost",
-        standalone: window.matchMedia("(display-mode: standalone)").matches,
+        standalone: window.matchMedia("(display-mode:standalone)").matches,
       };
 
       // Check if manifest is accessible
@@ -62,16 +59,6 @@ const PWAStatus = () => {
       </div>
 
       <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-300">Service Worker:</span>
-          <Badge
-            variant={status.serviceWorker ? "default" : "destructive"}
-            className="text-xs"
-          >
-            {status.serviceWorker ? "✓" : "✗"}
-          </Badge>
-        </div>
-
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-300">Manifest:</span>
           <Badge

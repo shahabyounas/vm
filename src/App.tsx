@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import PWAInstall from "./components/PWAInstall";
-import Index from "./pages/Index";
+import ProtectedRoute from "./components/ProtectedRoute";
+import PublicRoute from "./components/PublicRoute";
+import HomeRoute from "./components/HomeRoute";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -26,14 +28,70 @@ const App = () => (
         <PWAInstall />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/rewards" element={<Rewards />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/users" element={<UserManagement />} />
-            <Route path="/scan" element={<Scan />} />
+            {/* Public routes - redirect authenticated users to dashboard */}
+            <Route path="/" element={<HomeRoute />} />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <Register />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              }
+            />
+
+            {/* Protected routes - redirect unauthenticated users to login */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rewards"
+              element={
+                <ProtectedRoute>
+                  <Rewards />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/scan"
+              element={
+                <ProtectedRoute>
+                  <Scan />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin-only routes */}
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <UserManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 404 route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

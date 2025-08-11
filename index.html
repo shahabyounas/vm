@@ -60,22 +60,6 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("/sw.js")
-            .then(function (registration) {
-              console.log(
-                "ServiceWorker registration successful with scope: ",
-                registration.scope
-              );
-            })
-            .catch(function (error) {
-              console.log("ServiceWorker registration failed:", error);
-            });
-        });
-      }
-    </script>
+    <!-- Service Worker removed - No caching system -->
   </body>
 </html>
