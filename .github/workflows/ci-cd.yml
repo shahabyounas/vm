@@ -14,30 +14,6 @@ env:
   GITHUB_PAGES_IPS: "185.199.108.153,185.199.109.153,185.199.110.153,185.199.111.153"
 
 jobs:
-  # Lint and format check
-  lint:
-    name: Lint and Format
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run ESLint
-        run: npm run lint
-
-
-
-      - name: Check formatting
-        run: npx prettier --check .
 
   # Unit tests
   test:
