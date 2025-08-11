@@ -30,6 +30,10 @@ export interface User {
   purchaseLimit?: number;
   role: UserRole;
   currentReward?: Reward;
+  // Session management
+  sessionToken?: string;
+  lastLoginAt?: Timestamp;
+  isSessionValid?: boolean;
 }
 
 export interface GlobalSettings {

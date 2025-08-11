@@ -6,19 +6,52 @@ import {
   onAuthStateChanged,
 } from "firebase/auth";
 import { User, GlobalSettings } from "@/hooks/auth.types";
-import { doc, setDoc, getDoc, Timestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
+
+// Generate a unique session token
+const generateSessionToken = (): string => {
+  return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
 
 export const loginUser = async (email: string, password: string): Promise<User | null> => {
   try {
+    console.log("loginUser: Starting login process for email:", email);
+    
     const cred = await signInWithEmailAndPassword(auth, email, password);
+    console.log("loginUser: Firebase Auth successful for UID:", cred.user.uid);
     
     const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+    console.log("loginUser: User document exists:", userDoc.exists());
     
     if (userDoc.exists()) {
       const userData = userDoc.data() as User;
-      return userData;
+      console.log("loginUser: User data retrieved, current session status:", userData.isSessionValid);
+      
+      // Generate new session token and update user document
+      const sessionToken = generateSessionToken();
+      const now = Timestamp.now();
+      
+      console.log("loginUser: Updating user document with new session");
+      // Create the new session directly
+      await updateDoc(doc(db, "users", cred.user.uid), {
+        sessionToken,
+        lastLoginAt: now,
+        isSessionValid: true,
+      });
+      console.log("loginUser: User document updated with new session");
+      
+      // Return updated user data with session info
+      const updatedUserData = {
+        ...userData,
+        sessionToken,
+        lastLoginAt: now,
+        isSessionValid: true,
+      };
+      console.log("loginUser: Returning updated user data with session:", updatedUserData.isSessionValid);
+      return updatedUserData;
     }
   
+    console.log("loginUser: User document not found, returning null");
     return null;
   } catch (error) {
     console.error("loginUser error:", error);
@@ -38,6 +71,9 @@ export const registerUser = async (
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     
     const currentPurchaseLimit = settings?.purchaseLimit || 5;
+    const sessionToken = generateSessionToken();
+    const now = Timestamp.now();
+    
     const newUser: User = {
       id: cred.user.uid,
       name,
@@ -45,10 +81,14 @@ export const registerUser = async (
       feedback,
       purchases: 0,
       isRewardReady: false,
-      createdAt: Timestamp.now(),
+      createdAt: now,
       rewards: [],
       purchaseLimit: currentPurchaseLimit,
       role: "customer",
+      // Session management
+      sessionToken,
+      lastLoginAt: now,
+      isSessionValid: true,
     };
 
     
@@ -75,7 +115,48 @@ export const registerUser = async (
 };
 
 export const logoutUser = async () => {
-  await signOut(auth);
+  try {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      // Invalidate all sessions for this user across all devices
+      await updateDoc(doc(db, "users", currentUser.uid), {
+        isSessionValid: false,
+        sessionToken: null,
+      });
+    }
+    
+    // Sign out from current device
+    await signOut(auth);
+  } catch (error) {
+    console.error("Logout error:", error);
+    // Still sign out even if session invalidation fails
+    await signOut(auth);
+  }
+};
+
+// Validate if a user's session is still valid
+export const validateUserSession = async (userId: string): Promise<boolean> => {
+  try {
+    const userDoc = await getDoc(doc(db, "users", userId));
+    if (userDoc.exists()) {
+      const userData = userDoc.data() as User;
+      
+      // Be very lenient - only return false if explicitly marked as invalid
+      // This prevents issues during login when session might not be fully created yet
+      if (userData.isSessionValid === false) {
+        console.log("Session validation: explicitly marked as invalid");
+        return false;
+      }
+      
+      console.log("Session validation: treating as valid (status:", userData.isSessionValid, ")");
+      return true;
+    }
+    console.log("Session validation: user document not found");
+    return false;
+  } catch (error) {
+    console.error("Session validation error:", error);
+    return false;
+  }
 };
 
 export const subscribeToAuthState = (cb: (user: unknown) => void) => {

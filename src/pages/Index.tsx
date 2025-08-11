@@ -126,18 +126,6 @@ const Index = () => {
               Already a Member?
             </Button>
           </Link>
-
-          {/* Install App Button - Only show if not installed */}
-          {!isInstalled && (
-            <Button
-              onClick={handleManualInstall}
-              variant="outline"
-              className="w-full py-3 text-base font-semibold bg-transparent border-2 border-green-500 text-green-400 hover:bg-green-500 hover:text-white transition-all duration-300 transform hover:scale-105"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Install App
-            </Button>
-          )}
         </div>
 
         {/* PWA Install Guide - Only show if not installed */}
@@ -150,46 +138,6 @@ const Index = () => {
         {/* Footer */}
         <div className="absolute bottom-6 text-center text-gray-500">
           <p className="text-sm">Smoke responsibly • 21+ only</p>
-        </div>
-
-        {/* Database Seed Button - For development/testing */}
-        <div className="mt-8">
-          <Button
-            onClick={async () => {
-              try {
-                const isSeeded = true;
-                if (isSeeded) {
-                  toast({
-                    title: "Database Status",
-                    description:
-                      "Database is already seeded with initial data.",
-                  });
-                } else {
-                  toast({
-                    title: "Seeding Database",
-                    description: "Creating initial data...",
-                  });
-                  // await seedDatabase();
-                  toast({
-                    title: "Success!",
-                    description: "Database seeded with initial data.",
-                  });
-                }
-              } catch (error) {
-                toast({
-                  title: "Error",
-                  description:
-                    "Failed to seed database. Check console for details.",
-                  variant: "destructive",
-                });
-              }
-            }}
-            variant="outline"
-            className="bg-transparent border-2 border-green-500 text-green-400 hover:bg-green-500 hover:text-white transition-all duration-300"
-          >
-            <Database className="w-4 h-4 mr-2" />
-            Check/Seed Database
-          </Button>
         </div>
       </div>
     </div>

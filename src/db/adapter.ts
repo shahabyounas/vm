@@ -23,6 +23,7 @@ export const registerUser = withErrorHandling(auth.registerUser, 'registerUser')
 export const logoutUser = withErrorHandling(auth.logoutUser, 'logoutUser');
 export const subscribeToAuthState = auth.subscribeToAuthState;
 
+
 // User
 export const fetchAllUsers = user.fetchAllUsers;
 export const fetchUserRealtime = user.fetchUserRealtime;

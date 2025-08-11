@@ -72,19 +72,52 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           firebaseUser !== null &&
           "uid" in firebaseUser
         ) {
-          unsubscribeSnapshot = fetchUserRealtime(
-            // @ts-expect-error: firebaseUser is from Firebase Auth
-            firebaseUser.uid,
-            (userData) => {
-              setUser(userData);
-              setLoading(false);
-            },
-            (error) => {
-              console.error("Error listening to user data:", error);
-              setUser(null);
-              setLoading(false);
-            }
+          // Don't validate session immediately - let the real-time listener handle it
+          // This prevents race conditions during login
+          console.log(
+            "Firebase Auth user detected, setting up real-time listener for:",
+            firebaseUser.uid
           );
+
+          // Add a small delay to allow session creation to complete
+          setTimeout(() => {
+            unsubscribeSnapshot = fetchUserRealtime(
+              // @ts-expect-error: firebaseUser is from Firebase Auth
+              firebaseUser.uid,
+              (userData) => {
+                console.log("Real-time user data received:", {
+                  uid: userData.id,
+                  isSessionValid: userData.isSessionValid,
+                  hasSessionToken: !!userData.sessionToken,
+                });
+
+                // During login, be very lenient with session validation
+                // Only logout if explicitly marked as invalid
+                if (userData.isSessionValid === false) {
+                  console.log(
+                    "Session explicitly invalidated, signing out user"
+                  );
+                  setUser(null);
+                  setLoading(false);
+                  logoutUser();
+                } else {
+                  // Accept the user data regardless of session status during login
+                  // This prevents premature logout during session creation
+                  console.log(
+                    "Accepting user data during login, session status:",
+                    userData.isSessionValid
+                  );
+                  setUser(userData);
+                  setLoading(false);
+                }
+              },
+              (error) => {
+                console.error("Error listening to user data:", error);
+                setUser(null);
+                setLoading(false);
+              }
+            );
+          }, 500); // 500ms delay to allow session creation
         } else {
           setUser(null);
           setLoading(false);
@@ -109,7 +142,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   // Auth actions
-  const login = (email: string, password: string) => loginUser(email, password);
+  const login = async (email: string, password: string) => {
+    console.log("Login attempt started for:", email);
+    try {
+      const result = await loginUser(email, password);
+      console.log("Login successful, user data received:", !!result);
+      return result;
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw error;
+    }
+  };
   const register = (
     name: string,
     email: string,
@@ -124,6 +167,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     newRole: import("./auth.types").UserRole
   ) => updateUserRole(user, userId, newRole);
   const logout = async () => {
+    console.log("Logout called from useAuth hook");
     await logoutUser();
     setUser(null);
   };

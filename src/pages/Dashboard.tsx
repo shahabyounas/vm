@@ -13,6 +13,7 @@ import HeaderSkeleton from "@/components/HeaderSkeleton";
 import WelcomeCardSkeleton from "@/components/WelcomeCardSkeleton";
 import DashboardTabsSkeleton from "@/components/DashboardTabsSkeleton";
 import ProgressCardSkeleton from "@/components/ProgressCardSkeleton";
+import SessionStatus from "@/components/SessionStatus";
 
 const Dashboard = () => {
   // Only destructure from useDashboard what is actually used in Dashboard.tsx
@@ -128,6 +129,9 @@ const Dashboard = () => {
             ))}
         </div>
       </div>
+
+      {/* Session Status Component */}
+      {/* <SessionStatus /> */}
     </div>
   );
 };
