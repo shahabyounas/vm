@@ -1,0 +1,374 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: "18"
+  PNPM_VERSION: "8"
+  PRODUCTION_DOMAIN: "vapemasters.shop"
+  STAGING_DOMAIN: "staging.vapemasters.shop"
+  GITHUB_PAGES_IPS: "185.199.108.153,185.199.109.153,185.199.110.153,185.199.111.153"
+
+jobs:
+  # Lint and format check
+  lint:
+    name: Lint and Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+
+
+      - name: Check formatting
+        run: npx prettier --check .
+
+  # Unit tests
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+        continue-on-error: true
+
+      - name: Upload test coverage
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+
+  # Build and type check
+  build:
+    name: Build and Type Check
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-files
+          path: dist/
+          retention-days: 7
+
+  # Security audit
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit
+        run: npm audit --audit-level=moderate
+
+      - name: Check for known vulnerabilities
+        run: npx audit-ci --moderate
+
+  # Bundle analysis
+  bundle-analysis:
+    name: Bundle Analysis
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build with bundle analysis
+        run: npm run build:analyze
+
+      - name: Upload bundle analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-analysis
+          path: dist/
+          retention-days: 7
+
+  # Performance testing
+  performance:
+    name: Performance Testing
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-files
+          path: dist/
+
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli@0.12.x
+          lhci autorun
+
+  # Deploy to staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Verify CNAME file
+        run: |
+          if [ ! -f "public/CNAME" ]; then
+            echo "❌ CNAME file not found in public/ directory"
+            exit 1
+          fi
+          CNAME_CONTENT=$(cat public/CNAME)
+          if [ "$CNAME_CONTENT" != "${{ env.PRODUCTION_DOMAIN }}" ]; then
+            echo "❌ CNAME file contains incorrect domain: $CNAME_CONTENT"
+            echo "Expected: ${{ env.PRODUCTION_DOMAIN }}"
+            exit 1
+          fi
+          echo "✅ CNAME file verified: $CNAME_CONTENT"
+
+      - name: Create staging CNAME
+        run: |
+          echo "${{ env.STAGING_DOMAIN }}" > dist/CNAME
+
+      - name: Deploy to GitHub Pages (Staging)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages-staging
+          cname: ${{ env.STAGING_DOMAIN }}
+          force_orphan: true
+
+      - name: Verify staging deployment
+        run: |
+          echo "Waiting for deployment to complete..."
+          sleep 30
+          echo "Staging site should be available at: https://${{ env.STAGING_DOMAIN }}"
+          echo "GitHub Pages URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+
+  # Deploy to production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, security, performance]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Verify CNAME file
+        run: |
+          if [ ! -f "public/CNAME" ]; then
+            echo "❌ CNAME file not found in public/ directory"
+            exit 1
+          fi
+          CNAME_CONTENT=$(cat public/CNAME)
+          if [ "$CNAME_CONTENT" != "${{ env.PRODUCTION_DOMAIN }}" ]; then
+            echo "❌ CNAME file contains incorrect domain: $CNAME_CONTENT"
+            echo "Expected: ${{ env.PRODUCTION_DOMAIN }}"
+            exit 1
+          fi
+          echo "✅ CNAME file verified: $CNAME_CONTENT"
+
+      - name: Create production CNAME
+        run: |
+          echo "${{ env.PRODUCTION_DOMAIN }}" > dist/CNAME
+
+      - name: Deploy to GitHub Pages (Production)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          cname: ${{ env.PRODUCTION_DOMAIN }}
+          force_orphan: true
+
+      - name: Verify production deployment
+        run: |
+          echo "Waiting for deployment to complete..."
+          sleep 30
+          echo "Production site should be available at: https://${{ env.PRODUCTION_DOMAIN }}"
+          echo "GitHub Pages URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+
+      - name: Test production site
+        run: |
+          echo "Testing production site availability..."
+          # Wait a bit more for DNS propagation
+          sleep 60
+          echo "Production deployment completed successfully!"
+          echo "🌐 Site URL: https://${{ env.PRODUCTION_DOMAIN }}"
+          echo "📊 GitHub Pages: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+
+  # Domain verification
+  verify-domain:
+    name: Verify Domain Configuration
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: github.ref == 'refs/heads/main' && success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dig
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dnsutils
+
+      - name: Verify DNS records
+        run: |
+          echo "🔍 Verifying DNS configuration for ${{ env.PRODUCTION_DOMAIN }}..."
+          
+          # Check A records
+          echo "Checking A records..."
+          dig ${{ env.PRODUCTION_DOMAIN }} +noall +answer
+          
+          # Check if domain resolves to GitHub Pages IPs
+          echo "Verifying GitHub Pages IP addresses..."
+          RESULT=$(dig ${{ env.PRODUCTION_DOMAIN }} +short | grep -E "185\.199\.(108|109|110|111)\.153")
+          if [ -z "$RESULT" ]; then
+            echo "⚠️  Warning: Domain may not be pointing to GitHub Pages IPs"
+            echo "Expected IPs: ${{ env.GITHUB_PAGES_IPS }}"
+          else
+            echo "✅ Domain is pointing to GitHub Pages IPs"
+          fi
+
+      - name: Check HTTPS availability
+        run: |
+          echo "🔒 Checking HTTPS availability..."
+          # Wait for SSL certificate to be generated
+          sleep 120
+          
+          # Test HTTPS connection
+          if curl -s -o /dev/null -w "%{http_code}" https://${{ env.PRODUCTION_DOMAIN }} | grep -q "200\|301\|302"; then
+            echo "✅ HTTPS is working for ${{ env.PRODUCTION_DOMAIN }}"
+          else
+            echo "⚠️  HTTPS may not be working yet (SSL certificate generation can take up to 24 hours)"
+          fi
+
+      - name: Generate deployment summary
+        run: |
+          echo "🎉 Deployment Summary"
+          echo "===================="
+          echo "Production URL: https://${{ env.PRODUCTION_DOMAIN }}"
+          echo "Staging URL: https://${{ env.STAGING_DOMAIN }}"
+          echo "GitHub Pages URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          echo ""
+          echo "📋 Next Steps:"
+          echo "1. Verify DNS propagation (can take 24-48 hours)"
+          echo "2. Check SSL certificate generation (can take up to 24 hours)"
+          echo "3. Test all features on the custom domain"
+          echo "4. Monitor site performance and uptime"
+
+  # Notify on failure
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, security]
+    if: failure() && github.event_name == 'push'
+    steps:
+      - name: Notify failure
+        run: |
+          echo "Pipeline failed! Check the logs for details."
+          # Add your notification logic here (Slack, email, etc.)

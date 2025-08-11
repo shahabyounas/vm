@@ -8,14 +8,27 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:prod": "vite build --mode production",
+    "build:analyze": "vite build --mode production --analyze",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+
     "preview": "vite preview",
     "predeploy": "npm run build:prod",
     "deploy": "gh-pages -d dist",
+    "deploy:staging": "gh-pages -d dist -b gh-pages-staging",
+    "deploy:prod": "gh-pages -d dist -b gh-pages",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "audit": "npm audit --audit-level=moderate",
+    "audit:fix": "npm audit fix",
     "seed": "node scripts/seed.js",
     "seed:check": "node -e \"import('./scripts/seed.js').then(m => console.log('Database seeded:', m.isDatabaseSeeded ? 'Yes' : 'No'))\"",
-    "seed:reset": "node -e \"import('./scripts/seed.js').then(m => m.resetDatabase())\""
+    "seed:reset": "node -e \"import('./scripts/seed.js').then(m => m.resetDatabase())\"",
+    "ci:full": "npm run lint && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -86,6 +99,7 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
+    "audit-ci": "^6.6.1",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
@@ -94,9 +108,11 @@
     "globals": "^15.9.0",
     "lovable-tagger": "^1.1.7",
     "postcss": "^8.4.47",
+    "prettier": "^3.6.2",
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "vite-bundle-analyzer": "^0.7.0"
   }
 }

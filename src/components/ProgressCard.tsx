@@ -1,10 +1,11 @@
 import CircularProgress from "./CircularProgress";
 import { Button } from "@/components/ui/button";
+import { User, GlobalSettings } from "@/hooks/auth.types";
 
 interface ProgressCardProps {
-  user: any;
+  user: User;
   userPurchaseLimit: number;
-  settings: any;
+  settings: GlobalSettings | null;
   purchasesRemaining: number;
   onViewReward?: () => void;
 }
