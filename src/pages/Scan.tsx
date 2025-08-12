@@ -17,7 +17,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
 
 const Scan = () => {
-  const [result, setResult] = useState("");
   const [verified, setVerified] = useState<null | boolean>(null);
   const [scannedUser, setScannedUser] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -30,7 +29,6 @@ const Scan = () => {
 
   const handleDecode = async (data: unknown) => {
     if (isProcessing) return;
-    setResult(JSON.stringify(data));
     setIsProcessing(true);
     setVerified(null);
     setScannedUser(null);
@@ -102,7 +100,10 @@ const Scan = () => {
         });
       }
 
-      navigate("/dashboard");
+      // Show success message for 3 seconds before redirecting
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1500);
     } catch (error) {
       console.error("Error processing QR scan:", error);
       let message = "Failed to process loyalty point";
@@ -123,7 +124,6 @@ const Scan = () => {
 
   const handleError = (err: unknown) => {
     console.error("Scanner error:", err);
-    setResult("Error scanning QR code");
     setVerified(false);
     toast({
       title: "Scanner Error",
@@ -134,7 +134,6 @@ const Scan = () => {
   };
 
   const resetScanner = () => {
-    setResult("");
     setVerified(null);
     setScannedUser(null);
     setIsProcessing(false);
@@ -172,68 +171,64 @@ const Scan = () => {
             <h2 className="text-2xl font-bold text-white mb-4">
               Scan a User's QR Code
             </h2>
-
-            <div className="relative w-full flex flex-col items-center">
-              <div style={{ width: 300, height: 300, margin: "20px auto" }}>
-                <Scanner onScan={handleDecode} onError={handleError} />
-              </div>
-              {isProcessing && (
-                <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
-                  Processing...
+            {!verified && (
+              <div className="relative w-full flex flex-col items-center">
+                <div style={{ width: 300, height: 300, margin: "20px auto" }}>
+                  <Scanner onScan={handleDecode} onError={handleError} />
                 </div>
-              )}
-            </div>
-
-            {result && (
-              <div className="mt-4 p-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white">
-                <div className="text-center">
-                  <div className="text-sm text-gray-300 mb-2">Scanned:</div>
-                  <div className="text-xs font-mono text-gray-400 break-all">
-                    {result}
+                {isProcessing && (
+                  <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                    Processing...
                   </div>
-                </div>
+                )}
               </div>
             )}
 
             {verified === true && (
-              <div className="mt-4 p-3 bg-green-900/50 border border-green-700 rounded-lg text-green-400 font-semibold">
-                <div className="text-center">
-                  <div className="text-lg mb-1">
-                    ✅ QR Code Verified & Updated!
+              <div className="mt-6 p-6 bg-gradient-to-r from-green-900/50 to-emerald-900/50 border border-green-700 rounded-xl text-center shadow-2xl animate-pulse">
+                <div className="text-6xl mb-4">🎉</div>
+                <div className="text-2xl font-bold text-green-400 mb-2">
+                  Scan Successful!
+                </div>
+                <div className="text-lg text-green-300 mb-3">
+                  Loyalty point added successfully
+                </div>
+                {scannedUser && (
+                  <div className="text-sm text-green-400 bg-green-900/30 px-3 py-1 rounded-full inline-block">
+                    {scannedUser}
                   </div>
-                  <div className="text-sm text-green-300">
-                    Loyalty point added for user
-                  </div>
-                  {scannedUser && (
-                    <div className="text-xs text-green-400 mt-1 font-mono">
-                      {scannedUser}
-                    </div>
-                  )}
+                )}
+                <div className="mt-4 text-xs text-green-500">
+                  Redirecting to dashboard...
                 </div>
               </div>
             )}
-
             {verified === false && (
-              <div className="mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-400 font-semibold">
-                <div className="text-center">
-                  <div className="text-lg mb-1">❌ QR Code Not Recognized</div>
-                  <div className="text-sm text-red-300">
-                    No user found for this QR code
-                  </div>
+              <div className="mt-6 p-6 bg-gradient-to-r from-red-900/50 to-pink-900/50 border border-red-700 rounded-xl text-center shadow-2xl">
+                <div className="text-6xl mb-4">⚠️</div>
+                <div className="text-2xl font-bold text-red-400 mb-2">
+                  Scan Failed
+                </div>
+                <div className="text-lg text-red-300 mb-3">
+                  Unable to process this QR code
+                </div>
+                <div className="text-sm text-red-400 bg-red-900/30 px-3 py-1 rounded-full inline-block">
+                  Please try again with a valid loyalty QR code
                 </div>
               </div>
             )}
-
-            <div className="mt-6 flex gap-3">
-              <Button
-                onClick={resetScanner}
-                disabled={!result && !verified}
-                variant="outline"
-                className="border-red-500 text-red-400 hover:bg-red-500/20"
-              >
-                Reset Scanner
-              </Button>
-            </div>
+            {!verified && (
+              <div className="mt-6 flex gap-3">
+                <Button
+                  onClick={resetScanner}
+                  disabled={!verified}
+                  variant="outline"
+                  className="border-red-500 text-red-400 hover:bg-red-500/20"
+                >
+                  Reset Scanner
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
