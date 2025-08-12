@@ -1,0 +1,76 @@
+{
+  "hash": "e5207d15",
+  "configHash": "84904dcb",
+  "lockfileHash": "76afecca",
+  "browserHash": "447a13fa",
+  "optimized": {
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "2f397f06",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "a80cca8a",
+      "needsInterop": true
+    },
+    "@tanstack/react-query": {
+      "src": "../../node_modules/@tanstack/react-query/build/modern/index.js",
+      "file": "@tanstack_react-query.js",
+      "fileHash": "395a185e",
+      "needsInterop": false
+    },
+    "react-router-dom": {
+      "src": "../../node_modules/react-router-dom/dist/index.js",
+      "file": "react-router-dom.js",
+      "fileHash": "520eb160",
+      "needsInterop": false
+    },
+    "react-confetti": {
+      "src": "../../node_modules/react-confetti/dist/react-confetti.mjs",
+      "file": "react-confetti.js",
+      "fileHash": "d299c13f",
+      "needsInterop": false
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "866e2ebc",
+      "needsInterop": true
+    },
+    "lucide-react": {
+      "src": "../../node_modules/lucide-react/dist/esm/lucide-react.js",
+      "file": "lucide-react.js",
+      "fileHash": "10d93b25",
+      "needsInterop": false
+    },
+    "firebase/firestore": {
+      "src": "../../node_modules/firebase/firestore/dist/esm/index.esm.js",
+      "file": "firebase_firestore.js",
+      "fileHash": "dfe7539b",
+      "needsInterop": false
+    },
+    "@yudiel/react-qr-scanner": {
+      "src": "../../node_modules/@yudiel/react-qr-scanner/dist/index.esm.mjs",
+      "file": "@yudiel_react-qr-scanner.js",
+      "fileHash": "ccc1212e",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-I2MCD6RR": {
+      "file": "chunk-I2MCD6RR.js"
+    },
+    "chunk-T6PWRRVS": {
+      "file": "chunk-T6PWRRVS.js"
+    },
+    "chunk-E55NSNTN": {
+      "file": "chunk-E55NSNTN.js"
+    },
+    "chunk-4MBMRILA": {
+      "file": "chunk-4MBMRILA.js"
+    }
+  }
+}

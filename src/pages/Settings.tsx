@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Settings as SettingsIcon } from "lucide-react";
-import { resetAllData } from "@/db/adapter";
+// import { resetAllData } from "@/db/adapter";
 import { trackEvent } from "@/lib/analytics";
 
 const Settings = () => {
@@ -36,8 +36,11 @@ const Settings = () => {
   // Load current settings
   useEffect(() => {
     if (settings) {
-      setPurchaseLimit(settings.purchaseLimit);
-      setDescriptionMessage(settings.descriptionMessage);
+      setPurchaseLimit(settings.purchaseLimit || 5);
+      setDescriptionMessage(
+        settings.descriptionMessage ||
+          "Complete purchases to unlock your reward!"
+      );
     }
   }, [settings]);
 
@@ -112,7 +115,6 @@ const Settings = () => {
       return;
     setResetting(true);
     try {
-      await resetAllData(user);
       toast({
         title: "All Data Reset",
         description: "All user data has been deleted.",
@@ -196,7 +198,7 @@ const Settings = () => {
                       min="1"
                       max="50"
                       value={purchaseLimit}
-                      onChange={(e) =>
+                      onChange={e =>
                         setPurchaseLimit(parseInt(e.target.value) || 1)
                       }
                       className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 text-lg"
@@ -226,7 +228,7 @@ const Settings = () => {
                     <Textarea
                       id="descriptionMessage"
                       value={descriptionMessage}
-                      onChange={(e) => setDescriptionMessage(e.target.value)}
+                      onChange={e => setDescriptionMessage(e.target.value)}
                       maxLength={200}
                       className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 min-h-[120px] resize-none"
                       placeholder="Enter description message for new users..."
@@ -244,13 +246,18 @@ const Settings = () => {
                       Current Settings
                     </h3>
                     <div className="space-y-1 text-sm text-gray-300">
-                      <div>Purchase Limit: {settings.purchaseLimit}</div>
-                      <div>Description: {settings.descriptionMessage}</div>
+                      <div>Purchase Limit: {settings.purchaseLimit || 5}</div>
+                      <div>
+                        Description:{" "}
+                        {settings.descriptionMessage ||
+                          "Complete purchases to unlock your reward!"}
+                      </div>
                       <div>
                         Last Updated:{" "}
-                        {settings.updatedAt.toDate().toLocaleString()}
+                        {settings.updatedAt?.toDate().toLocaleString() ||
+                          "Not set"}
                       </div>
-                      <div>Updated By: {settings.updatedBy}</div>
+                      <div>Updated By: {settings.updatedBy || "system"}</div>
                     </div>
                   </div>
                 )}
@@ -287,26 +294,6 @@ const Settings = () => {
                     original purchase limits to maintain fairness.
                   </p>
                 </div>
-
-                {/* Reset All Data (Super Admin Only) */}
-                {user.role === "super_admin" && (
-                  <div className="flex justify-center pt-8">
-                    <Button
-                      onClick={handleResetAll}
-                      disabled={resetting}
-                      className="bg-gradient-to-r from-red-800 to-red-900 hover:from-red-900 hover:to-black text-white font-semibold px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
-                    >
-                      {resetting ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Resetting...
-                        </>
-                      ) : (
-                        <>Delete ALL Data</>
-                      )}
-                    </Button>
-                  </div>
-                )}
               </div>
             </div>
           </div>
