@@ -25,10 +25,7 @@ const Settings = () => {
 
   // Redirect if not admin
   useEffect(() => {
-    if (
-      !loading &&
-      (!user || (user.role !== "admin" && user.role !== "super_admin"))
-    ) {
+    if (!loading && (!user || user.role !== "super_admin")) {
       navigate("/dashboard");
     }
   }, [user, loading, navigate]);

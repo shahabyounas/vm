@@ -33,7 +33,7 @@ export const DASHBOARD_ACTIONS: DashboardAction[] = [
     label: "Settings",
     route: "/settings",
     colorClass: "border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white",
-    roles: ["admin", "super_admin"],
+    roles: ["super_admin"],
     icon: Settings,
   },
   {

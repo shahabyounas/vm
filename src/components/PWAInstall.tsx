@@ -37,17 +37,6 @@ const PWAInstall = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const forceHide = urlParams.get("hide-install") === "true";
 
-    console.log("PWA Detection:", {
-      isStandalone,
-      isFullscreen,
-      isMinimalUI,
-      hasNavigatorStandalone,
-      hasNoReferrer,
-      hasNoHistory,
-      isInstalledApp,
-      forceHide,
-    });
-
     return isInstalledApp || forceHide;
   };
 
@@ -65,7 +54,7 @@ const PWAInstall = () => {
 
     // Check if manifest is accessible
     fetch("/manifest.json")
-      .then((response) => {
+      .then(response => {
         if (!response.ok) {
           setDebugInfo("Manifest not accessible");
           return;
