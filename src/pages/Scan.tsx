@@ -107,16 +107,25 @@ const Scan = () => {
     } catch (error) {
       console.error("Error processing QR scan:", error);
       let message = "Failed to process loyalty point";
+      let isCooldownError = false;
+
       if (error instanceof Error) {
         message = error.message;
+        // Check if this is a cooldown error
+        isCooldownError =
+          message.includes("next stamp in") || message.includes("hours");
       }
+
       setVerified(false);
       toast({
-        title: "Error",
+        title: isCooldownError ? "Cooldown Active" : "Error",
         description: message,
-        variant: "destructive",
+        variant: isCooldownError ? "default" : "destructive",
       });
-      trackEvent("scan_qr_error", { error: (error as Error).message });
+      trackEvent("scan_qr_error", {
+        error: (error as Error).message,
+        isCooldownError,
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -204,16 +213,16 @@ const Scan = () => {
               </div>
             )}
             {verified === false && (
-              <div className="mt-6 p-6 bg-gradient-to-r from-red-900/50 to-pink-900/50 border border-red-700 rounded-xl text-center shadow-2xl">
-                <div className="text-6xl mb-4">⚠️</div>
-                <div className="text-2xl font-bold text-red-400 mb-2">
-                  Scan Failed
+              <div className="mt-6 p-6 bg-gradient-to-r from-orange-900/50 to-yellow-900/50 border border-orange-700 rounded-xl text-center shadow-2xl">
+                <div className="text-6xl mb-4">⏰</div>
+                <div className="text-2xl font-bold text-orange-400 mb-2">
+                  Cooldown Active
                 </div>
-                <div className="text-lg text-red-300 mb-3">
-                  Unable to process this QR code
+                <div className="text-lg text-orange-300 mb-3">
+                  You can only collect one stamp per 24 hours
                 </div>
-                <div className="text-sm text-red-400 bg-red-900/30 px-3 py-1 rounded-full inline-block">
-                  Please try again with a valid loyalty QR code
+                <div className="text-sm text-orange-400 bg-orange-900/30 px-3 py-1 rounded-full inline-block">
+                  Please wait before scanning again
                 </div>
               </div>
             )}
@@ -235,5 +244,4 @@ const Scan = () => {
     </div>
   );
 };
-
 export default Scan;

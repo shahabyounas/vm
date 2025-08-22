@@ -16,6 +16,20 @@ export const addPurchase = async (
   const userSnap = await getDoc(userRef);
   if (!userSnap.exists()) throw new Error("User not found");
   const targetUserData = userSnap.data();
+  
+  // Check 24-hour cooldown for customers
+  if (targetUserData.role === "customer" && targetUserData.lastScanAt) {
+    const lastScanTime = targetUserData.lastScanAt.toDate();
+    const currentTime = new Date();
+    const timeDifference = currentTime.getTime() - lastScanTime.getTime();
+    const hoursDifference = timeDifference / (1000 * 60 * 60); // Convert to hours
+    
+    if (hoursDifference < 24) {
+      const remainingHours = Math.ceil(24 - hoursDifference);
+      throw new Error(`You can collect your next stamp in ${remainingHours} hours. Last scan was ${lastScanTime.toLocaleString()}`);
+    }
+  }
+  
   const userPurchaseLimit =
     targetUserData.purchaseLimit || settings?.purchaseLimit || 5;
   if (targetUserData.purchases >= userPurchaseLimit) return;
