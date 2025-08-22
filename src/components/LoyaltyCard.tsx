@@ -20,10 +20,10 @@ const LoyaltyCard = ({ user }: { user: User }) => {
             {/* Timer Header */}
             <div className="text-center mb-6">
               <div className="text-red-400 text-xl font-bold mb-2">
-                ⏰ COUNTDOWN TIMER
+                ⏰ DAILY RESET TIMER
               </div>
               <div className="text-red-300 text-sm">
-                Next scan available when timer completes
+                Scan available again the next day
               </div>
             </div>
 

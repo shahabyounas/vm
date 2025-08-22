@@ -68,7 +68,7 @@ const ProgressCard = ({
           {!canScan && remainingTime && (
             <div className="p-5 bg-gradient-to-br from-red-900/40 to-red-800/40 border border-red-700/50 rounded-xl shadow-lg">
               <div className="text-red-400 text-sm font-bold mb-3 text-center">
-                ⏰ COUNTDOWN TIMER
+                ⏰ DAILY RESET TIMER
               </div>
               <div className="flex justify-center mb-3">
                 <CircularCountdown

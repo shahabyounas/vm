@@ -17,16 +17,31 @@ export const addPurchase = async (
   if (!userSnap.exists()) throw new Error("User not found");
   const targetUserData = userSnap.data();
   
-  // Check 24-hour cooldown for customers
+  // Check daily cooldown for customers (resets at midnight)
   if (targetUserData.role === "customer" && targetUserData.lastScanAt) {
     const lastScanTime = targetUserData.lastScanAt.toDate();
     const currentTime = new Date();
-    const timeDifference = currentTime.getTime() - lastScanTime.getTime();
-    const hoursDifference = timeDifference / (1000 * 60 * 60); // Convert to hours
     
-    if (hoursDifference < 24) {
-      const remainingHours = Math.ceil(24 - hoursDifference);
-      throw new Error(`You can collect your next stamp in ${remainingHours} hours. Last scan was ${lastScanTime.toLocaleString()}`);
+    // Get today's midnight (12:00 AM)
+    const todayMidnight = new Date(currentTime);
+    todayMidnight.setHours(0, 0, 0, 0);
+    
+    // Get the date of the last scan (midnight)
+    const lastScanDate = new Date(lastScanTime);
+    lastScanDate.setHours(0, 0, 0, 0);
+    
+    // Check if we're still in the same day as the last scan
+    const isSameDay = lastScanDate.getTime() === todayMidnight.getTime();
+    
+    if (isSameDay) {
+      // Still in cooldown - calculate time until midnight
+      const tomorrowMidnight = new Date(todayMidnight);
+      tomorrowMidnight.setDate(tomorrowMidnight.getDate() + 1);
+      
+      const timeUntilMidnight = tomorrowMidnight.getTime() - currentTime.getTime();
+      const hoursUntilMidnight = Math.ceil(timeUntilMidnight / (1000 * 60 * 60));
+      
+      throw new Error(`You can collect your next stamp at midnight (12:00 AM). Last scan was ${lastScanTime.toLocaleString()}. Time remaining: ${hoursUntilMidnight} hours`);
     }
   }
   

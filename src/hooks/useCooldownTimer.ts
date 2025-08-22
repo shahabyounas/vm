@@ -33,28 +33,43 @@ export const useCooldownTimer = (lastScanAt?: Timestamp): CooldownState => {
     const updateCooldown = () => {
       const lastScanTime = lastScanAt.toDate();
       const currentTime = new Date();
-      const timeDifference = currentTime.getTime() - lastScanTime.getTime();
-      const hoursDifference = timeDifference / (1000 * 60 * 60);
       
-      if (hoursDifference < 24) {
-        const remainingHours = 24 - hoursDifference;
-        const nextScanDate = new Date(lastScanTime.getTime() + (24 * 60 * 60 * 1000));
+      // Get today's midnight (12:00 AM)
+      const todayMidnight = new Date(currentTime);
+      todayMidnight.setHours(0, 0, 0, 0);
+      
+      // Get tomorrow's midnight (12:00 AM)
+      const tomorrowMidnight = new Date(todayMidnight);
+      tomorrowMidnight.setDate(tomorrowMidnight.getDate() + 1);
+      
+      // Check if we're still in the same day as the last scan
+      const lastScanDate = new Date(lastScanTime);
+      lastScanDate.setHours(0, 0, 0, 0);
+      
+      const isSameDay = lastScanDate.getTime() === todayMidnight.getTime();
+      
+      if (isSameDay) {
+        // Still in cooldown - calculate time until midnight
+        const timeUntilMidnight = tomorrowMidnight.getTime() - currentTime.getTime();
+        const hoursUntilMidnight = timeUntilMidnight / (1000 * 60 * 60);
         
         // Format remaining time
-        const hours = Math.floor(remainingHours);
-        const minutes = Math.floor((remainingHours - hours) * 60);
-        const seconds = Math.floor(((remainingHours - hours) * 60 - minutes) * 60);
+        const hours = Math.floor(hoursUntilMidnight);
+        const minutes = Math.floor((hoursUntilMidnight - hours) * 60);
+        const seconds = Math.floor(((hoursUntilMidnight - hours) * 60 - minutes) * 60);
         
         const remainingTimeStr = `${hours}h ${minutes}m ${seconds}s`;
         
         setState({
           canScan: false,
-          nextScanTime: nextScanDate.toLocaleString(),
+          nextScanTime: tomorrowMidnight.toLocaleString(),
           remainingTime: remainingTimeStr,
-          hoursRemaining: Math.ceil(remainingHours),
+          hoursRemaining: Math.ceil(hoursUntilMidnight),
           isComplete: false,
         });
+        
       } else {
+        // New day - cooldown reset
         setState({
           canScan: true,
           nextScanTime: null,
