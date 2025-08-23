@@ -17,9 +17,18 @@ import {
   Settings,
   Users,
   LogOut,
+  User,
 } from "lucide-react";
 
 export const DASHBOARD_ACTIONS: DashboardAction[] = [
+  {
+    key: "profile",
+    label: "Edit Profile",
+    route: "profile",
+    colorClass: "border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-white",
+    roles: ["customer", "admin", "super_admin"],
+    icon: User,
+  },
   {
     key: "scan",
     label: "Scan",

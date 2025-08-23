@@ -1,7 +1,17 @@
-import { User, Offer, Reward } from "@/hooks/auth.types";
-import { CheckCircle, Gift, Clock, Star, QrCode } from "lucide-react";
 import { useState } from "react";
 import QRCodeModal from "./QRCodeModal";
+import {
+  QrCode,
+  Clock,
+  Gift,
+  Star,
+  Trophy,
+  Target,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { User, Offer, Reward } from "@/hooks/auth.types";
 
 interface LoyaltyCardProps {
   user: User;
@@ -11,190 +21,377 @@ interface LoyaltyCardProps {
 const LoyaltyCard = ({ user, offers }: LoyaltyCardProps) => {
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
+  const [expandedSections, setExpandedSections] = useState({
+    inProgress: true,
+    completed: true,
+  });
+  const [showAllInProgress, setShowAllInProgress] = useState(false);
+  const [showAllCompleted, setShowAllCompleted] = useState(false);
 
-  // Get all user rewards (both in progress and completed)
   const userRewards = user.completedRewards || [];
 
-  // Separate rewards by status
-  const inProgressRewards = userRewards.filter(reward => {
-    const progress = reward.scanHistory?.length || 0;
-    const required = reward.offerSnapshot?.stampRequirement || 0;
-    return progress < required;
-  });
+  // Filter rewards based on completion status
+  const inProgressRewards = userRewards.filter(
+    reward =>
+      reward.scanHistory?.length < reward.offerSnapshot?.stampRequirement
+  );
 
-  const completedRewards = userRewards.filter(reward => {
-    const progress = reward.scanHistory?.length || 0;
-    const required = reward.offerSnapshot?.stampRequirement || 0;
-    return progress >= required;
-  });
+  const completedRewards = userRewards.filter(
+    reward =>
+      reward.scanHistory?.length >= reward.offerSnapshot?.stampRequirement
+  );
+
+  // Separate completed rewards into unredeemed and redeemed
+  const unredeemedRewards = completedRewards.filter(
+    reward => !reward.claimedAt
+  );
+  const redeemedRewards = completedRewards.filter(reward => !!reward.claimedAt);
+
+  // Sort rewards by latest dates (most recent first)
+  const sortByLatestDate = (a: Reward, b: Reward) => {
+    const dateA = a.createdAt.toDate().getTime();
+    const dateB = b.createdAt.toDate().getTime();
+    return dateB - dateA; // Most recent first
+  };
+
+  const sortedInProgressRewards = [...inProgressRewards].sort(sortByLatestDate);
+  const sortedUnredeemedRewards = [...unredeemedRewards].sort(sortByLatestDate);
+  const sortedRedeemedRewards = [...redeemedRewards].sort(sortByLatestDate);
+
+  // Limit displayed rewards for better UX
+  const maxVisibleRewards = 3;
+  const displayedInProgress = showAllInProgress
+    ? sortedInProgressRewards
+    : sortedInProgressRewards.slice(0, maxVisibleRewards);
+  const displayedUnredeemed = showAllInProgress
+    ? sortedUnredeemedRewards
+    : sortedUnredeemedRewards.slice(0, maxVisibleRewards);
+  const displayedRedeemed = showAllCompleted
+    ? sortedRedeemedRewards
+    : sortedRedeemedRewards.slice(0, maxVisibleRewards);
 
   const handleRedeem = (reward: Reward) => {
     setSelectedReward(reward);
     setShowRedeemModal(true);
   };
 
+  const closeRedeemModal = () => {
+    setShowRedeemModal(false);
+    setSelectedReward(null);
+  };
+
+  const toggleSection = (section: "inProgress" | "completed") => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
   return (
-    <div className="bg-gradient-to-br from-gray-900/90 via-black/80 to-red-950/90 border border-red-900/40 rounded-none p-6 min-h-[460px] -mt-0 shadow-2xl">
-      <h3 className="text-2xl font-bold text-white mb-6 text-center">
-        Your Rewards & Progress
-      </h3>
-
-      {/* In Progress Rewards Section */}
+    <div className="space-y-6">
+      {/* Rewards in Progress Section - Collapsible */}
       {inProgressRewards.length > 0 && (
-        <div className="mb-6">
-          <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-            <Clock className="w-5 h-5 mr-2 text-blue-400" />
-            Rewards in Progress
-          </h4>
-          <div className="space-y-4">
-            {inProgressRewards.map(reward => {
-              const progress = reward.scanHistory?.length || 0;
-              const required = reward.offerSnapshot?.stampRequirement || 0;
-              const progressPercentage = Math.min(
-                (progress / required) * 100,
-                100
-              );
+        <div className="bg-gradient-to-br from-blue-900/20 via-blue-800/10 to-blue-900/20 border border-blue-700/30 rounded-xl p-6 hover:bg-blue-900/30 transition-all duration-300">
+          {/* Section Header with Toggle */}
+          <div
+            className="flex items-center justify-between mb-4 cursor-pointer hover:bg-blue-900/30 rounded-lg p-2 transition-colors duration-200"
+            onClick={() => toggleSection("inProgress")}
+          >
+            <div className="flex items-center">
+              <Target className="w-5 h-5 text-blue-400 mr-2 animate-pulse" />
+              <h3 className="text-lg font-semibold text-blue-300">
+                Rewards in Progress ({inProgressRewards.length})
+              </h3>
+            </div>
+            {expandedSections.inProgress ? (
+              <ChevronUp className="w-5 h-5 text-blue-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-blue-400" />
+            )}
+          </div>
 
-              return (
-                <div
-                  key={reward.rewardId}
-                  className="bg-gradient-to-br from-blue-900/40 to-blue-800/40 border border-blue-700/50 rounded-xl p-4"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h5 className="text-lg font-semibold text-white mb-1">
-                        {reward.offerSnapshot?.offerName || "Loyalty Reward"}
-                      </h5>
-                      <p className="text-gray-300 text-sm mb-2">
-                        {reward.offerSnapshot?.description ||
-                          "Collect stamps to earn this reward"}
-                      </p>
-                      <div className="text-blue-300 text-sm font-medium">
-                        Reward: {reward.rewardDescription}
+          {/* Collapsible Content */}
+          {expandedSections.inProgress && (
+            <>
+              <div className="space-y-4">
+                {displayedInProgress.map(reward => {
+                  const currentProgress = reward.scanHistory?.length || 0;
+                  const required = reward.offerSnapshot?.stampRequirement || 0;
+                  const progressPercentage = Math.min(
+                    (currentProgress / required) * 100,
+                    100
+                  );
+                  const remaining = Math.max(0, required - currentProgress);
+
+                  return (
+                    <div
+                      key={reward.rewardId}
+                      className="bg-blue-900/10 border border-blue-600/20 rounded-lg p-4 hover:bg-blue-900/20 hover:border-blue-500/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-md group"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h4 className="text-white font-medium text-sm mb-1 group-hover:text-blue-200 transition-colors duration-200">
+                            {reward.offerSnapshot?.offerName ||
+                              "Loyalty Reward"}
+                          </h4>
+                          <p className="text-gray-300 text-xs mb-2 group-hover:text-gray-200 transition-colors duration-200">
+                            {reward.offerSnapshot?.description ||
+                              "Collect stamps to earn this reward"}
+                          </p>
+                          <p className="text-blue-300 text-xs font-medium">
+                            {reward.rewardDescription}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-white font-medium">
+                            {currentProgress} / {required}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            stamps collected
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="w-full bg-gray-600 rounded-full h-2 mb-3 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-blue-500 to-blue-400 h-2 rounded-full transition-all duration-1000 ease-out shadow-sm"
+                          style={{ width: `${progressPercentage}%` }}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-400">
+                          {remaining > 0
+                            ? `${remaining} more stamps needed`
+                            : "🎉 Ready to redeem!"}
+                        </span>
+                        <span className="text-blue-300 font-medium">
+                          Started{" "}
+                          {reward.createdAt.toDate().toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-900/50 text-blue-300 border border-blue-700/50">
-                      IN PROGRESS
-                    </span>
-                  </div>
+                  );
+                })}
+              </div>
 
-                  <div className="space-y-3 mb-4">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Stamps Collected:</span>
-                      <span className="text-white font-medium">
-                        {progress} / {required} stamps
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-600 rounded-full h-3">
-                      <div
-                        className="h-3 rounded-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-blue-400"
-                        style={{ width: `${progressPercentage}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Remaining:</span>
-                      <span className="text-white font-medium">
-                        {Math.max(0, required - progress)} more stamps needed
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Started:</span>
-                      <span className="text-white font-medium">
-                        {reward.createdAt.toDate().toLocaleDateString()}
-                      </span>
-                    </div>
+              {/* Show More/Less Button */}
+              {inProgressRewards.length > maxVisibleRewards && (
+                <div className="text-center pt-4">
+                  <Button
+                    onClick={() => setShowAllInProgress(!showAllInProgress)}
+                    variant="outline"
+                    size="sm"
+                    className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors duration-200"
+                  >
+                    {showAllInProgress
+                      ? "Show Less"
+                      : `Show All ${inProgressRewards.length} In-Progress Rewards`}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Completed Rewards Section - Collapsible */}
+      {(unredeemedRewards.length > 0 || redeemedRewards.length > 0) && (
+        <div className="bg-gradient-to-br from-green-900/20 via-green-800/10 to-green-900/20 border border-green-700/30 rounded-xl p-6 hover:bg-green-900/30 transition-all duration-300">
+          {/* Section Header with Toggle */}
+          <div
+            className="flex items-center justify-between mb-4 cursor-pointer hover:bg-green-900/30 rounded-lg p-2 transition-colors duration-200"
+            onClick={() => toggleSection("completed")}
+          >
+            <div className="flex items-center">
+              <Trophy className="w-5 h-5 text-green-400 mr-2 animate-pulse" />
+              <h3 className="text-lg font-semibold text-green-300">
+                Completed Rewards (
+                {unredeemedRewards.length + redeemedRewards.length})
+              </h3>
+            </div>
+            {expandedSections.completed ? (
+              <ChevronUp className="w-5 h-5 text-green-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-green-400" />
+            )}
+          </div>
+
+          {/* Collapsible Content */}
+          {expandedSections.completed && (
+            <>
+              {/* Unredeemed Rewards - Show at Top */}
+              {unredeemedRewards.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-md font-medium text-green-200 mb-3 flex items-center">
+                    <Gift className="w-4 h-4 mr-2 text-green-400" />
+                    Ready to Redeem ({unredeemedRewards.length})
+                  </h4>
+                  <div className="space-y-4">
+                    {displayedUnredeemed.map(reward => {
+                      const isRedeemed = !!reward.claimedAt;
+
+                      return (
+                        <div
+                          key={reward.rewardId}
+                          className={`border rounded-lg p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-md group ${
+                            isRedeemed
+                              ? "bg-gray-800/30 border-gray-600/30"
+                              : "bg-green-900/10 border-green-600/20 hover:bg-green-900/20 hover:border-green-500/30"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h4 className="text-white font-medium text-sm mb-1 group-hover:text-green-200 transition-colors duration-200">
+                                {reward.offerSnapshot?.offerName ||
+                                  "Loyalty Reward"}
+                              </h4>
+                              <p className="text-gray-300 text-xs mb-2 group-hover:text-gray-200 transition-colors duration-200">
+                                {reward.offerSnapshot?.description ||
+                                  "Reward description"}
+                              </p>
+                              <p className="text-green-300 text-xs font-medium">
+                                {reward.rewardDescription}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <div
+                                className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                  isRedeemed
+                                    ? "bg-gray-700 text-gray-300"
+                                    : "bg-green-700 text-green-300 animate-pulse"
+                                }`}
+                              >
+                                {isRedeemed ? "REDEEMED" : "AVAILABLE"}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-400">
+                              Earned{" "}
+                              {reward.createdAt.toDate().toLocaleDateString()}
+                            </span>
+                            {isRedeemed && (
+                              <span className="text-gray-400">
+                                Redeemed{" "}
+                                {reward.claimedAt
+                                  ?.toDate()
+                                  .toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Redeem Button for Available Rewards */}
+                          {!isRedeemed && (
+                            <div className="mt-3">
+                              <Button
+                                onClick={() => handleRedeem(reward)}
+                                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium py-2 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/25"
+                              >
+                                <Gift className="w-4 h-4 mr-2" />
+                                Redeem Reward
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })}
+              )}
+
+              {/* Redeemed Rewards */}
+              {redeemedRewards.length > 0 && (
+                <div>
+                  <h4 className="text-md font-medium text-gray-300 mb-3 flex items-center">
+                    <Trophy className="w-4 h-4 mr-2 text-gray-400" />
+                    Previously Redeemed ({redeemedRewards.length})
+                  </h4>
+                  <div className="space-y-4">
+                    {displayedRedeemed.map(reward => {
+                      return (
+                        <div
+                          key={reward.rewardId}
+                          className="bg-gray-800/30 border border-gray-600/30 rounded-lg p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-md group"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h4 className="text-white font-medium text-sm mb-1 group-hover:text-gray-200 transition-colors duration-200">
+                                {reward.offerSnapshot?.offerName ||
+                                  "Loyalty Reward"}
+                              </h4>
+                              <p className="text-gray-300 text-xs mb-2 group-hover:text-gray-200 transition-colors duration-200">
+                                {reward.offerSnapshot?.description ||
+                                  "Reward description"}
+                              </p>
+                              <p className="text-gray-400 text-xs font-medium">
+                                {reward.rewardDescription}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs px-2 py-1 rounded-full font-medium bg-gray-700 text-gray-300">
+                                REDEEMED
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-400">
+                              Earned{" "}
+                              {reward.createdAt.toDate().toLocaleDateString()}
+                            </span>
+                            <span className="text-gray-400">
+                              Redeemed{" "}
+                              {reward.claimedAt?.toDate().toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Show More/Less Button */}
+              {(unredeemedRewards.length > maxVisibleRewards ||
+                redeemedRewards.length > maxVisibleRewards) && (
+                <div className="text-center pt-4">
+                  <Button
+                    onClick={() => setShowAllCompleted(!showAllCompleted)}
+                    variant="outline"
+                    size="sm"
+                    className="border-green-600 text-green-400 hover:bg-green-600 hover:text-white transition-colors duration-200"
+                  >
+                    {showAllCompleted
+                      ? "Show Less"
+                      : `Show All ${unredeemedRewards.length + redeemedRewards.length} Completed Rewards`}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {userRewards.length === 0 && (
+        <div className="text-center py-12">
+          <div className="bg-gray-800/30 border border-gray-700/30 rounded-xl p-8 hover:bg-gray-800/40 transition-all duration-300">
+            <Gift className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-300 mb-2">
+              No Rewards Yet
+            </h3>
+            <p className="text-gray-500 text-sm">
+              Start collecting stamps from the Offers tab to earn your first
+              reward!
+            </p>
           </div>
         </div>
       )}
 
-      {/* Completed Rewards Section */}
-      {completedRewards.length > 0 && (
-        <div className="mb-6">
-          <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-            <Gift className="w-5 h-5 mr-2 text-purple-400" />
-            Completed Rewards
-          </h4>
-          <div className="space-y-3">
-            {completedRewards.map((reward, index) => {
-              const isRedeemed = reward.claimedAt !== null;
-
-              return (
-                <div
-                  key={reward.rewardId}
-                  className="bg-gradient-to-br from-purple-900/40 to-purple-800/40 border border-purple-700/50 rounded-xl p-4"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h5 className="text-white font-semibold mb-1">
-                        {reward.offerSnapshot?.offerName ||
-                          `Reward ${index + 1}`}
-                      </h5>
-                      <p className="text-gray-300 text-sm mb-2">
-                        {reward.offerSnapshot?.description ||
-                          "Loyalty program reward"}
-                      </p>
-                      <div className="text-purple-300 text-sm font-medium mb-1">
-                        Reward: {reward.rewardDescription}
-                      </div>
-                      <p className="text-gray-400 text-xs">
-                        Earned: {reward.createdAt.toDate().toLocaleDateString()}
-                      </p>
-                      {isRedeemed && reward.claimedAt && (
-                        <p className="text-green-400 text-xs">
-                          Redeemed:{" "}
-                          {reward.claimedAt.toDate().toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          isRedeemed
-                            ? "bg-green-900/50 text-green-300 border border-green-700/50"
-                            : "bg-purple-900/50 text-purple-300 border border-purple-700/50"
-                        }`}
-                      >
-                        {isRedeemed ? "REDEEMED" : "AVAILABLE"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {!isRedeemed && (
-                    <div className="text-center">
-                      <button
-                        onClick={() => handleRedeem(reward)}
-                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105"
-                      >
-                        <QrCode className="w-4 h-4 mr-2" />
-                        Redeem Reward
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* No Rewards Message */}
-      {inProgressRewards.length === 0 && completedRewards.length === 0 && (
-        <div className="text-center py-8">
-          <Star className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h4 className="text-lg font-semibold text-gray-300 mb-2">
-            No Rewards Yet
-          </h4>
-          <p className="text-gray-500 text-sm">
-            Start collecting stamps from the Offers tab to earn rewards!
-          </p>
-        </div>
-      )}
-
-      {/* Redeem QR Modal */}
+      {/* QR Code Modal for Redemption */}
       {showRedeemModal && selectedReward && (
         <QRCodeModal
           qrData={{
@@ -209,10 +406,7 @@ const LoyaltyCard = ({ user, offers }: LoyaltyCardProps) => {
             action: "redeem_reward",
           }}
           isOpen={showRedeemModal}
-          onClose={() => {
-            setShowRedeemModal(false);
-            setSelectedReward(null);
-          }}
+          onClose={closeRedeemModal}
         />
       )}
     </div>
