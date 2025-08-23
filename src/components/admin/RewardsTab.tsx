@@ -87,6 +87,60 @@ const RewardsTab: React.FC<RewardsTabProps> = ({ allUsers }) => {
           ))}
         </div>
       </div>
+
+      {/* Claimed Rewards */}
+      {claimedRewards.length > 0 && (
+        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+          <h3 className="text-xl font-bold text-white mb-4">
+            Claimed Rewards ({claimedRewards.length})
+          </h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {claimedRewards.map(reward => (
+              <div
+                key={reward.rewardId}
+                className="bg-gradient-to-br from-yellow-900/40 to-yellow-800/40 border border-yellow-700/50 rounded-xl p-4"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-lg font-semibold text-white">
+                    {reward.rewardDescription}
+                  </div>
+                  <span className="text-xs text-yellow-300 bg-yellow-900/50 px-2 py-1 rounded-full">
+                    CLAIMED
+                  </span>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">User:</span>
+                    <span className="text-white">{reward.userName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Type:</span>
+                    <span className="text-white capitalize">
+                      {reward.rewardType}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Value:</span>
+                    <span className="text-white">{reward.rewardValue}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Earned:</span>
+                    <span className="text-white">
+                      {reward.createdAt.toDate().toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Redeemed:</span>
+                    <span className="text-yellow-300 font-medium">
+                      {reward.claimedAt?.toDate().toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -143,6 +143,12 @@ const LoyaltyCard = ({ user, offers }: LoyaltyCardProps) => {
                       <p className="text-gray-400 text-xs">
                         Earned: {reward.createdAt.toDate().toLocaleDateString()}
                       </p>
+                      {isRedeemed && reward.claimedAt && (
+                        <p className="text-green-400 text-xs">
+                          Redeemed:{" "}
+                          {reward.claimedAt.toDate().toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <span

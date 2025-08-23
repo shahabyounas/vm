@@ -100,7 +100,12 @@ const Scan = () => {
       // Handle different actions based on QR data
       if (qrData.action === "redeem_reward" && qrData.rewardId) {
         // Handle reward redemption
-        await redeemReward(qrData.userEmail, qrData.userId, qrData.rewardId);
+        await redeemReward(
+          null,
+          qrData.userEmail,
+          qrData.userId,
+          qrData.rewardId
+        );
       } else {
         // Handle stamp collection
         await addPurchase(qrData.userEmail, qrData.userId, qrData.offerId);
@@ -173,24 +178,19 @@ const Scan = () => {
     } catch (error) {
       console.error("Error processing QR scan:", error);
       let message = "Failed to process loyalty point";
-      let isCooldownError = false;
 
       if (error instanceof Error) {
         message = error.message;
-        // Check if this is a cooldown error
-        isCooldownError =
-          message.includes("next stamp in") || message.includes("hours");
       }
 
       setVerified(false);
       toast({
-        title: isCooldownError ? "Cooldown Active" : "Error",
+        title: "Error",
         description: message,
-        variant: isCooldownError ? "default" : "destructive",
+        variant: "destructive",
       });
       trackEvent("scan_qr_error", {
         error: (error as Error).message,
-        isCooldownError,
       });
     } finally {
       setIsProcessing(false);
@@ -289,16 +289,16 @@ const Scan = () => {
               </div>
             )}
             {verified === false && (
-              <div className="mt-6 p-6 bg-gradient-to-r from-orange-900/50 to-yellow-900/50 border border-orange-700 rounded-xl text-center shadow-2xl">
-                <div className="text-6xl mb-4">⏰</div>
-                <div className="text-2xl font-bold text-orange-400 mb-2">
-                  Cooldown Active
+              <div className="mt-6 p-6 bg-gradient-to-r from-red-900/50 to-red-800/50 border border-red-700 rounded-xl text-center shadow-2xl">
+                <div className="text-6xl mb-4">❌</div>
+                <div className="text-2xl font-bold text-red-400 mb-2">
+                  Scan Failed
                 </div>
-                <div className="text-lg text-orange-300 mb-3">
-                  You can only collect one stamp per 24 hours
+                <div className="text-lg text-red-300 mb-3">
+                  There was an error processing the QR code
                 </div>
-                <div className="text-sm text-orange-400 bg-orange-900/30 px-3 py-1 rounded-full inline-block">
-                  Please wait before scanning again
+                <div className="text-sm text-red-400 bg-red-900/30 px-3 py-1 rounded-full inline-block">
+                  Please try scanning again
                 </div>
               </div>
             )}

@@ -157,6 +157,25 @@ const Dashboard = () => {
                         100
                       );
 
+                      // Check if user has a completed but unredeemed reward for this offer
+                      const completedUnredeemedReward =
+                        user.completedRewards?.find(
+                          reward =>
+                            reward.offerSnapshot?.offerId === offer.offerId &&
+                            reward.scanHistory?.length >=
+                              reward.offerSnapshot?.stampRequirement &&
+                            !reward.claimedAt
+                        );
+
+                      // Check if user has an active (in-progress) reward for this offer
+                      const activeRewardForOffer = user.completedRewards?.find(
+                        reward =>
+                          reward.offerSnapshot?.offerId === offer.offerId &&
+                          reward.scanHistory?.length <
+                            reward.offerSnapshot?.stampRequirement &&
+                          !reward.claimedAt
+                      );
+
                       return (
                         <div
                           key={offer.offerId}
@@ -229,26 +248,51 @@ const Dashboard = () => {
 
                           {/* Action Buttons */}
                           <div className="flex justify-center">
-                            <button
-                              onClick={() => {
-                                // Generate QR code for this offer
-                                const qrData = {
-                                  userId: user.id,
-                                  userEmail: user.email,
-                                  userName: user.name,
-                                  offerId: offer.offerId,
-                                  offerName: offer.name,
-                                  timestamp: new Date().toISOString(),
-                                };
+                            {activeRewardForOffer ? (
+                              <button
+                                onClick={() => {
+                                  // Generate QR code for this offer
+                                  const qrData = {
+                                    userId: user.id,
+                                    userEmail: user.email,
+                                    userName: user.name,
+                                    offerId: offer.offerId,
+                                    offerName: offer.name,
+                                    timestamp: new Date().toISOString(),
+                                  };
 
-                                // Open QR modal
-                                setSelectedQRData(qrData);
-                                setShowQRModal(true);
-                              }}
-                              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg"
-                            >
-                              Get Stamp
-                            </button>
+                                  // Open QR modal
+                                  setSelectedQRData(qrData);
+                                  setShowQRModal(true);
+                                }}
+                                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg"
+                              >
+                                Continue Collecting
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  // Generate QR code for this offer
+                                  const qrData = {
+                                    userId: user.id,
+                                    userEmail: user.email,
+                                    userName: user.name,
+                                    offerId: offer.offerId,
+                                    offerName: offer.name,
+                                    timestamp: new Date().toISOString(),
+                                  };
+
+                                  // Open QR modal
+                                  setSelectedQRData(qrData);
+                                  setShowQRModal(true);
+                                }}
+                                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg"
+                              >
+                                {completedUnredeemedReward
+                                  ? "Start New Reward"
+                                  : "Start Collecting"}
+                              </button>
+                            )}
                           </div>
                         </div>
                       );

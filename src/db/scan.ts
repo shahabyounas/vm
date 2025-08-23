@@ -18,6 +18,8 @@ export const addPurchase = async (
   const targetUserData = userSnap.data();
   
   // Check daily cooldown for customers (resets at midnight)
+  // COOLDOWN DISABLED - Users can scan as much as they want
+  /*
   if (targetUserData.role === "customer" && targetUserData.lastScanAt) {
     const lastScanTime = targetUserData.lastScanAt.toDate();
     const currentTime = new Date();
@@ -44,6 +46,7 @@ export const addPurchase = async (
       throw new Error(`You can collect your next stamp at midnight (12:00 AM). Last scan was ${lastScanTime.toLocaleString()}. Time remaining: ${hoursUntilMidnight} hours`);
     }
   }
+  */
   
   // Determine which offer to use
   const targetOfferId = offerId || targetUserData.currentOfferId;
@@ -65,24 +68,31 @@ export const addPurchase = async (
 
   const stampRequirement = targetOffer.stampRequirement;
   
-  // Check if user already has a reward for this offer
-  const existingReward = targetUserData.completedRewards?.find(
-    reward => reward.offerSnapshot?.offerId === targetOfferId
+  // Check if user already has an ACTIVE (in-progress) reward for this offer
+  const activeRewardForOffer = targetUserData.completedRewards?.find(
+    reward => 
+      reward.offerSnapshot?.offerId === targetOfferId && 
+      reward.scanHistory?.length < reward.offerSnapshot?.stampRequirement &&
+      !reward.claimedAt // Not redeemed yet
   );
   
   let currentProgress = 0;
-  let rewardToUpdate = existingReward;
+  let rewardToUpdate = activeRewardForOffer;
   
-  if (existingReward) {
-    // User already has a reward for this offer, update progress
-    currentProgress = existingReward.scanHistory?.length || 0;
+  if (activeRewardForOffer) {
+    // User has an active reward for this offer, update progress
+    currentProgress = activeRewardForOffer.scanHistory?.length || 0;
     
     // Check if already completed
     if (currentProgress >= stampRequirement) {
       throw new Error("User has already completed this offer");
     }
   } else {
-    // First time collecting stamps for this offer - create new reward
+    // No active reward for this offer - create new reward
+    // Users can start new rewards even if they have completed unredeemed rewards
+    // This allows them to accumulate multiple rewards and redeem them later
+    
+    // Create new reward for this offer
     rewardToUpdate = {
       rewardId: `reward_${Date.now()}`,
       claimedAt: null,
@@ -120,10 +130,10 @@ export const addPurchase = async (
   // Update or add the reward to completedRewards array
   let updatedCompletedRewards = targetUserData.completedRewards || [];
   
-  if (existingReward) {
-    // Update existing reward
+  if (activeRewardForOffer) {
+    // Update existing active reward
     updatedCompletedRewards = updatedCompletedRewards.map(reward =>
-      reward.rewardId === existingReward.rewardId ? updatedReward : reward
+      reward.rewardId === activeRewardForOffer.rewardId ? updatedReward : reward
     );
   } else {
     // Add new reward
