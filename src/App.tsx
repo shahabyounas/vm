@@ -25,7 +25,7 @@ const App = () => (
       <AuthProvider>
         <Toaster />
         <Sonner />
-        <PWAInstall />
+        {/* <PWAInstall /> */}
         <BrowserRouter>
           <Routes>
             {/* Public routes - redirect authenticated users to dashboard */}

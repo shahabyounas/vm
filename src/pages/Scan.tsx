@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "@/lib/utils";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   collection,
   query,
@@ -15,12 +15,14 @@ import { ArrowLeft } from "lucide-react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
+import { redeemReward } from "@/db/adapter";
 
 const Scan = () => {
   const [verified, setVerified] = useState<null | boolean>(null);
   const [scannedUser, setScannedUser] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { addPurchase } = useAuth();
 
   useEffect(() => {
@@ -46,38 +48,65 @@ const Scan = () => {
       // Analytics: QR code scanned
       trackEvent("scan_qr_attempt", { rawValue });
 
-      // Assume QR code is: LOYALTY:{email}:{uid}
-      const parts = rawValue.split(":");
-      if (parts.length < 3 || parts[0] !== "LOYALTY") {
-        trackEvent("scan_qr_invalid", { rawValue });
-        throw new Error("Invalid QR code format - must be LOYALTY:email:uid");
+      // Try to parse as JSON first (new format)
+      let qrData;
+      try {
+        qrData = JSON.parse(rawValue);
+      } catch {
+        // Fallback to old format: LOYALTY:{email}:{uid}
+        const parts = rawValue.split(":");
+        if (parts.length < 3 || parts[0] !== "LOYALTY") {
+          trackEvent("scan_qr_invalid", { rawValue });
+          throw new Error("Invalid QR code format");
+        }
+        qrData = {
+          userEmail: parts[1],
+          userId: parts[2],
+          offerId: "default_offer", // Fallback for old format
+        };
       }
-      const email = parts[1];
-      const uid = parts[2];
-      if (!uid) throw new Error("No user ID found in QR code");
+
+      // Validate QR data
+      if (!qrData.userEmail || !qrData.userId) {
+        throw new Error("Invalid QR code data - missing user information");
+      }
 
       // Look up user by UID in Firebase
-      const userRef = doc(db, "users", uid);
+      const userRef = doc(db, "users", qrData.userId);
       const userSnap = await getDocs(
         query(
           collection(db, "users"),
-          where("email", "==", email),
-          where("id", "==", uid)
+          where("email", "==", qrData.userEmail),
+          where("id", "==", qrData.userId)
         )
       );
       if (userSnap.empty) {
-        trackEvent("scan_qr_no_user", { email, uid });
+        trackEvent("scan_qr_no_user", {
+          email: qrData.userEmail,
+          uid: qrData.userId,
+        });
         throw new Error("No user found for this QR code");
       }
       const userDoc = userSnap.docs[0];
       const userData = userDoc.data();
+
       // Analytics: QR code valid and user found
-      trackEvent("scan_qr_success", { scanned_user: email, scanned_uid: uid });
+      trackEvent("scan_qr_success", {
+        scanned_user: qrData.userEmail,
+        scanned_uid: qrData.userId,
+        offer_id: qrData.offerId,
+      });
 
-      // Add purchase using the new reward-based system
-      await addPurchase(email, uid);
+      // Handle different actions based on QR data
+      if (qrData.action === "redeem_reward" && qrData.rewardId) {
+        // Handle reward redemption
+        await redeemReward(qrData.userEmail, qrData.userId, qrData.rewardId);
+      } else {
+        // Handle stamp collection
+        await addPurchase(qrData.userEmail, qrData.userId, qrData.offerId);
+      }
 
-      setScannedUser(email);
+      setScannedUser(qrData.userEmail);
       setVerified(true);
 
       // Get updated user data to show current purchase count
@@ -85,15 +114,52 @@ const Scan = () => {
       if (updatedUserSnap.exists()) {
         const updatedUserData = updatedUserSnap.data();
         const purchaseCount = updatedUserData.purchases || 0;
-        const userPurchaseLimit = updatedUserData.purchaseLimit || 5;
-        let successMessage = `Loyalty point added! Total purchases: ${purchaseCount}`;
-        if (purchaseCount >= userPurchaseLimit) {
-          successMessage += " - Reward ready! 🎉";
-          trackEvent("reward_ready", { scanned_user: email, scanned_uid: uid });
+
+        // Show different messages based on action
+        let successMessage = "";
+
+        if (qrData.action === "redeem_reward") {
+          successMessage = `Reward redeemed for ${qrData.userName}! 🎉`;
+          trackEvent("reward_redeemed", {
+            scanned_user: qrData.userEmail,
+            reward_id: qrData.rewardId,
+          });
         } else {
-          const remaining = userPurchaseLimit - purchaseCount;
-          successMessage += ` - ${remaining} more to earn reward`;
+          // Stamp collection
+          successMessage = `Stamp added for ${qrData.offerName || "loyalty program"}!`;
+          successMessage += ` Total purchases: ${purchaseCount}`;
+
+          if (qrData.offerId && qrData.offerId !== "default_offer") {
+            // Check if user has completed this specific offer
+            const currentProgress = updatedUserData.currentOfferProgress || 0;
+            const offerRequirement = 5; // TODO: Get from actual offer data
+            const remaining = Math.max(0, offerRequirement - currentProgress);
+
+            if (currentProgress >= offerRequirement) {
+              successMessage += " - Offer completed! 🎉";
+              trackEvent("offer_completed", {
+                scanned_user: qrData.userEmail,
+                offer_id: qrData.offerId,
+              });
+            } else {
+              successMessage += ` - ${remaining} more stamps needed for reward`;
+            }
+          } else {
+            // Fallback to old system
+            const userPurchaseLimit = updatedUserData.purchaseLimit || 5;
+            if (purchaseCount >= userPurchaseLimit) {
+              successMessage += " - Reward ready! 🎉";
+              trackEvent("reward_ready", {
+                scanned_user: qrData.userEmail,
+                scanned_uid: qrData.userId,
+              });
+            } else {
+              const remaining = userPurchaseLimit - purchaseCount;
+              successMessage += ` - ${remaining} more to earn reward`;
+            }
+          }
         }
+
         toast({
           title: "Success",
           description: successMessage,
@@ -197,16 +263,26 @@ const Scan = () => {
               <div className="mt-6 p-6 bg-gradient-to-r from-green-900/50 to-emerald-900/50 border border-green-700 rounded-xl text-center shadow-2xl animate-pulse">
                 <div className="text-6xl mb-4">🎉</div>
                 <div className="text-2xl font-bold text-green-400 mb-2">
-                  Scan Successful!
+                  Stamp Added Successfully!
                 </div>
                 <div className="text-lg text-green-300 mb-3">
-                  Loyalty point added successfully
+                  {scannedUser && (
+                    <div className="mb-3">
+                      <span className="text-green-400 font-semibold">
+                        {scannedUser}
+                      </span>
+                      <span className="text-green-300">
+                        {" "}
+                        has earned a stamp!
+                      </span>
+                    </div>
+                  )}
+                  {location.state?.qrData?.offerName && (
+                    <div className="text-sm text-green-400 bg-green-900/30 px-3 py-1 rounded-full inline-block mb-2">
+                      Offer: {location.state.qrData.offerName}
+                    </div>
+                  )}
                 </div>
-                {scannedUser && (
-                  <div className="text-sm text-green-400 bg-green-900/30 px-3 py-1 rounded-full inline-block">
-                    {scannedUser}
-                  </div>
-                )}
                 <div className="mt-4 text-xs text-green-500">
                   Redirecting to dashboard...
                 </div>

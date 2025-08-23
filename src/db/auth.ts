@@ -70,7 +70,6 @@ export const registerUser = async (
 
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     
-    const currentPurchaseLimit = settings?.purchaseLimit || 5;
     const sessionToken = generateSessionToken();
     const now = Timestamp.now();
     
@@ -83,8 +82,10 @@ export const registerUser = async (
       isRewardReady: false,
       createdAt: now,
       rewards: [],
-      purchaseLimit: currentPurchaseLimit,
       role: "customer",
+      // Current active offer (will be assigned after creation)
+      currentOfferId: "default_offer", // Default offer ID
+      currentOfferProgress: 0,
       // Session management
       sessionToken,
       lastLoginAt: now,

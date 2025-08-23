@@ -10,6 +10,22 @@ export interface Reward {
   rewardId: string;
   claimedAt: Timestamp | null;
   scanHistory: ScanEvent[];
+  // Reward details based on offer at time of creation
+  rewardType: string;
+  rewardValue: string;
+  rewardDescription: string;
+  // Offer snapshot when reward was created
+  offerSnapshot: {
+    offerId: string;
+    offerName: string;
+    description: string;
+    stampRequirement: number;
+    rewardType: string;
+    rewardValue: string;
+    rewardDescription: string;
+  };
+  createdAt: Timestamp;
+  expiresAt?: Timestamp; // Optional expiration date
 }
 
 export interface ScanEvent {
@@ -30,10 +46,29 @@ export interface User {
   purchaseLimit?: number;
   role: UserRole;
   currentReward?: Reward;
+  // Track completed rewards separately
+  completedRewards?: Reward[];
+  // Current active offer the user is working on
+  currentOfferId?: string;
+  currentOfferProgress?: number;
   // Session management
   sessionToken?: string;
   lastLoginAt?: Timestamp;
   isSessionValid?: boolean;
+}
+
+export interface Offer {
+  offerId: string;
+  name: string;
+  description: string;
+  stampRequirement: number;
+  rewardType: string; // e.g., "percentage", "fixed_amount", "free_item"
+  rewardValue: string; // e.g., "20", "5.00", "Free Coffee"
+  rewardDescription: string; // e.g., "20% OFF", "$5.00 OFF", "Free Coffee"
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
 }
 
 export interface GlobalSettings {
@@ -57,13 +92,7 @@ export interface AuthContextType {
     password: string,
     feedback?: string
   ) => Promise<User>;
-  addPurchase: (targetEmail?: string, targetUid?: string) => Promise<void>;
-  useReward: () => Promise<void>;
+  addPurchase: (targetEmail?: string, targetUid?: string, offerId?: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateSettings: (
-    user: User,
-    purchaseLimit: number,
-    descriptionMessage: string
-  ) => Promise<void>;
   updateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
 } 

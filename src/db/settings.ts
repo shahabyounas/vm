@@ -17,6 +17,9 @@ export const fetchGlobalSettings = (
         const defaultSettings: GlobalSettings = {
           purchaseLimit: 5,
           descriptionMessage: "Complete purchases to unlock your reward!",
+          rewardType: "percentage",
+          rewardValue: "20",
+          rewardDescription: "20% OFF",
           updatedAt: Timestamp.now(),
           updatedBy: "system",
         };
@@ -31,7 +34,10 @@ export const fetchGlobalSettings = (
 export const updateSettings = async (
   user: User | null,
   purchaseLimit: number,
-  descriptionMessage: string
+  descriptionMessage: string,
+  rewardType: string,
+  rewardValue: string,
+  rewardDescription: string
 ) => {
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     throw new Error("Only admins can update settings");
@@ -40,6 +46,9 @@ export const updateSettings = async (
   await updateDoc(settingsRef, {
     purchaseLimit,
     descriptionMessage,
+    rewardType,
+    rewardValue,
+    rewardDescription,
     updatedAt: Timestamp.now(),
     updatedBy: user.email,
   });

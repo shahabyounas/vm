@@ -4,6 +4,7 @@ import * as scan from './scan';
 import * as rewards from './rewards';
 import * as settings from './settings';
 import * as admin from './admin';
+import * as offers from './offers';
 
 // Helper to wrap async functions with error handling and preserve types
 function withErrorHandling<T extends (...args: unknown[]) => Promise<unknown>>(fn: T, name: string): T {
@@ -33,10 +34,20 @@ export const updateUserRole = withErrorHandling(user.updateUserRole, 'updateUser
 export const addPurchase = withErrorHandling(scan.addPurchase, 'addPurchase');
 
 // Rewards
-export const useReward = withErrorHandling(rewards.useReward, 'useReward');
+export const redeemReward = withErrorHandling(rewards.redeemReward, 'redeemReward');
 
 // Settings
 export const fetchGlobalSettings = settings.fetchGlobalSettings;
 export const updateSettings = withErrorHandling(settings.updateSettings, 'updateSettings');
+
+// Offers
+export const fetchAllOffers = offers.fetchAllOffers;
+export const fetchActiveOffers = offers.fetchActiveOffers;
+export const createOffer = withErrorHandling(offers.createOffer, 'createOffer');
+export const updateOffer = withErrorHandling(offers.updateOffer, 'updateOffer');
+export const deleteOffer = withErrorHandling(offers.deleteOffer, 'deleteOffer');
+export const createDefaultOffer = withErrorHandling(offers.createDefaultOffer, 'createDefaultOffer');
+export const assignOfferToUser = withErrorHandling(offers.assignOfferToUser, 'assignOfferToUser');
+export const getUserCurrentOffer = offers.getUserCurrentOffer;
 
 export const resetAllData = admin.resetAllData; 

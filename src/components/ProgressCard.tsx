@@ -1,6 +1,6 @@
 import CircularProgress from "./CircularProgress";
 import { Button } from "@/components/ui/button";
-import { User, GlobalSettings } from "@/hooks/auth.types";
+import { User, GlobalSettings, Offer } from "@/hooks/auth.types";
 import { useCooldownTimer } from "@/hooks/useCooldownTimer";
 import CircularCountdown from "@/components/CircularCountdown";
 
@@ -10,6 +10,7 @@ interface ProgressCardProps {
   settings: GlobalSettings | null;
   purchasesRemaining: number;
   onViewReward?: () => void;
+  currentOffer?: Offer | null;
 }
 
 const ProgressCard = ({
@@ -18,6 +19,7 @@ const ProgressCard = ({
   settings,
   purchasesRemaining,
   onViewReward,
+  currentOffer,
 }: ProgressCardProps) => {
   const { canScan, nextScanTime, remainingTime, hoursRemaining, isComplete } =
     useCooldownTimer(user.lastScanAt);
@@ -65,31 +67,6 @@ const ProgressCard = ({
         </div>
         <div className="text-center space-y-4">
           {/* Cooldown Status */}
-          {!canScan && remainingTime && (
-            <div className="p-5 bg-gradient-to-br from-red-900/40 to-red-800/40 border border-red-700/50 rounded-xl shadow-lg">
-              <div className="text-red-400 text-sm font-bold mb-3 text-center">
-                ⏰ DAILY RESET TIMER
-              </div>
-              <div className="flex justify-center mb-3">
-                <CircularCountdown
-                  remainingTime={remainingTime}
-                  hoursRemaining={hoursRemaining}
-                  totalHours={24}
-                  size={90}
-                  strokeWidth={7}
-                  isComplete={isComplete}
-                />
-              </div>
-              <div className="text-center">
-                <div className="inline-flex items-center px-3 py-1 bg-red-900/50 border border-red-600/50 rounded-full">
-                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full mr-2 animate-pulse"></div>
-                  <span className="text-red-300 text-xs font-medium">
-                    ACTIVE
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
 
           {canScan && (
             <div className="p-3 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-700/50 rounded-lg">
@@ -97,6 +74,35 @@ const ProgressCard = ({
                 {isComplete
                   ? "🎉 Ready for next scan!"
                   : "✅ Ready for next scan"}
+              </div>
+            </div>
+          )}
+
+          {/* Current Offer Progress */}
+          {currentOffer && (
+            <div className="p-4 bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border border-blue-700/50 rounded-lg mb-4">
+              <div className="text-center">
+                <h4 className="text-lg font-semibold text-white mb-2">
+                  Current Offer: {currentOffer.name}
+                </h4>
+                <div className="flex justify-between items-center text-sm mb-2">
+                  <span className="text-gray-300">Progress:</span>
+                  <span className="text-white font-medium">
+                    {user.currentOfferProgress || 0} /{" "}
+                    {currentOffer.stampRequirement} stamps
+                  </span>
+                </div>
+                <div className="w-full bg-gray-600 rounded-full h-3 mb-3">
+                  <div
+                    className="bg-gradient-to-r from-blue-500 to-blue-400 h-3 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(((user.currentOfferProgress || 0) / currentOffer.stampRequirement) * 100, 100)}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-gray-300 text-sm">
+                  {currentOffer.rewardDescription}
+                </p>
               </div>
             </div>
           )}

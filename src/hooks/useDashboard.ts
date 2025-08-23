@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { DEFAULT_PURCHASE_LIMIT } from "@/constants";
+import { fetchAllOffers } from "@/db/adapter";
 
 export function useDashboard() {
   const {
@@ -14,13 +15,14 @@ export function useDashboard() {
     allUsers,
     allUsersLoading,
   } = useAuth();
+  const [offers, setOffers] = useState([]);
   const navigate = useNavigate();
   const [showFirstConfetti, setShowFirstConfetti] = useState(false);
   const prevPurchasesRef = useRef<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiKey, setConfettiKey] = useState(0);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<"progress" | "card">("progress");
+  const [activeTab, setActiveTab] = useState<"progress" | "card" | "offers">("progress");
 
   // Get user's purchase limit (individual or from settings)
   const userPurchaseLimit =
@@ -32,6 +34,21 @@ export function useDashboard() {
       navigate("/login");
     }
   }, [user, loading, navigate]);
+
+  // Fetch offers for all users (customers need to see available offers)
+  useEffect(() => {
+    if (user) {
+      const loadOffers = async () => {
+        try {
+          const fetchedOffers = await fetchAllOffers();
+          setOffers(fetchedOffers);
+        } catch (error) {
+          console.error("Error loading offers:", error);
+        }
+      };
+      loadOffers();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -81,6 +98,18 @@ export function useDashboard() {
 
   const purchasesRemaining = Math.max(0, userPurchaseLimit - (user?.purchases || 0));
 
+  // Function to handle offer selection
+  const handleOfferSelection = async (offerId: string) => {
+    try {
+      // TODO: Implement API call to update user's current offer
+      console.log("Selecting offer:", offerId);
+      // This would typically call an API to update the user's currentOfferId
+      // and reset currentOfferProgress to 0
+    } catch (error) {
+      console.error("Error selecting offer:", error);
+    }
+  };
+
   const handleAddPurchase = () => {
     if (!user || user.purchases >= userPurchaseLimit) return;
     addPurchase();
@@ -118,6 +147,7 @@ export function useDashboard() {
     settings,
     allUsers,
     allUsersLoading,
+    offers,
     navigate,
     showFirstConfetti,
     showConfetti,
@@ -129,5 +159,6 @@ export function useDashboard() {
     purchasesRemaining,
     handleAddPurchase,
     handleLogout,
+    handleOfferSelection,
   };
 } 
