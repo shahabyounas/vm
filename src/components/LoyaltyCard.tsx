@@ -31,15 +31,23 @@ const LoyaltyCard = ({ user, offers }: LoyaltyCardProps) => {
   const userRewards = user.completedRewards || [];
 
   // Filter rewards based on completion status
-  const inProgressRewards = userRewards.filter(
-    reward =>
-      reward.scanHistory?.length < reward.offerSnapshot?.stampRequirement
-  );
+  const inProgressRewards = userRewards.filter(reward => {
+    const totalStampsEarned =
+      reward.scanHistory?.reduce(
+        (total, scan) => total + (scan.stampsEarned || 1),
+        0
+      ) || 0;
+    return totalStampsEarned < (reward.offerSnapshot?.stampRequirement || 0);
+  });
 
-  const completedRewards = userRewards.filter(
-    reward =>
-      reward.scanHistory?.length >= reward.offerSnapshot?.stampRequirement
-  );
+  const completedRewards = userRewards.filter(reward => {
+    const totalStampsEarned =
+      reward.scanHistory?.reduce(
+        (total, scan) => total + (scan.stampsEarned || 1),
+        0
+      ) || 0;
+    return totalStampsEarned >= (reward.offerSnapshot?.stampRequirement || 0);
+  });
 
   // Separate completed rewards into unredeemed and redeemed
   const unredeemedRewards = completedRewards.filter(
@@ -115,13 +123,17 @@ const LoyaltyCard = ({ user, offers }: LoyaltyCardProps) => {
             <>
               <div className="space-y-4">
                 {displayedInProgress.map(reward => {
-                  const currentProgress = reward.scanHistory?.length || 0;
+                  const totalStampsEarned =
+                    reward.scanHistory?.reduce(
+                      (total, scan) => total + (scan.stampsEarned || 1),
+                      0
+                    ) || 0;
                   const required = reward.offerSnapshot?.stampRequirement || 0;
                   const progressPercentage = Math.min(
-                    (currentProgress / required) * 100,
+                    (totalStampsEarned / required) * 100,
                     100
                   );
-                  const remaining = Math.max(0, required - currentProgress);
+                  const remaining = Math.max(0, required - totalStampsEarned);
 
                   return (
                     <div
@@ -144,7 +156,7 @@ const LoyaltyCard = ({ user, offers }: LoyaltyCardProps) => {
                         </div>
                         <div className="text-right">
                           <div className="text-sm text-white font-medium">
-                            {currentProgress} / {required}
+                            {totalStampsEarned} / {required}
                           </div>
                           <div className="text-xs text-gray-400">
                             stamps collected
@@ -401,6 +413,7 @@ const LoyaltyCard = ({ user, offers }: LoyaltyCardProps) => {
             offerId: selectedReward.offerSnapshot?.offerId || "",
             offerName:
               selectedReward.offerSnapshot?.offerName || "Reward Redemption",
+            stampsPerScan: 1, // Default value for reward redemption
             timestamp: new Date().toISOString(),
             rewardId: selectedReward.rewardId,
             action: "redeem_reward",

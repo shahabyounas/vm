@@ -97,6 +97,7 @@ export interface AuthContextType {
     mobileNumber?: string
   ) => Promise<User>;
   addPurchase: (targetEmail?: string, targetUid?: string, offerId?: string) => Promise<void>;
+  redeemReward: (rewardId: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
 } 

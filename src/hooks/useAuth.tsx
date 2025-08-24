@@ -9,6 +9,7 @@ import {
   fetchUserRealtime,
   updateUserRole,
   addPurchase,
+  redeemReward,
   fetchGlobalSettings,
   updateSettings,
 } from "@/db/adapter";
@@ -163,6 +164,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     targetUid?: string,
     offerId?: string
   ) => addPurchase(null, targetEmail, targetUid, offerId);
+  const redeemRewardWithUser = (rewardId: string) =>
+    redeemReward(user, undefined, undefined, rewardId);
   const updateUserRoleWithUser = (
     userId: string,
     newRole: import("./auth.types").UserRole
@@ -185,6 +188,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         login,
         register,
         addPurchase: addPurchaseWithUser,
+        redeemReward: redeemRewardWithUser,
         logout,
         updateUserRole: updateUserRoleWithUser,
       }}

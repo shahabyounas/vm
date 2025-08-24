@@ -432,7 +432,26 @@ const OffersTab: React.FC<OffersTabProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* Offer Lifecycle Information */}
+      {/* Role-based Access Message */}
+      {userRole === "admin" && (
+        <div className="mb-6 bg-blue-900/20 border border-blue-700/50 rounded-xl p-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-600/20 rounded-full flex items-center justify-center">
+              <Eye className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <h4 className="text-blue-300 font-semibold">Read-Only Access</h4>
+              <p className="text-blue-200 text-sm">
+                You have view-only access to offers. You can see all offers and
+                their details, but cannot create, edit, or delete them. Contact
+                a super admin for any changes.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Information Block */}
       <div className="bg-gradient-to-r from-blue-900/20 to-blue-800/20 border border-blue-700/30 rounded-xl p-6">
         <div className="flex items-start space-x-3">
           <div className="text-blue-400 mt-1">
@@ -454,7 +473,7 @@ const OffersTab: React.FC<OffersTabProps> = ({
             <h4 className="text-lg font-semibold text-blue-300 mb-2">
               Offer Lifecycle Management
             </h4>
-            <div className="text-blue-200 text-sm space-y-2">
+            <div className="text-sm text-gray-300 space-y-2">
               <p>
                 <strong>Active Offers:</strong> Visible to all customers, new
                 users can start collecting stamps
@@ -468,11 +487,19 @@ const OffersTab: React.FC<OffersTabProps> = ({
                 stamps can complete their rewards even if the offer becomes
                 inactive
               </p>
-              <p>
-                <strong>Admin Control:</strong> Use Play button to activate
-                offers, Pause button to deactivate. Only inactive offers can be
-                edited or deleted.
-              </p>
+              {userRole === "super_admin" ? (
+                <p>
+                  <strong>Admin Control:</strong> Use Play button to activate
+                  offers, Pause button to deactivate. Only inactive offers can
+                  be edited or deleted.
+                </p>
+              ) : (
+                <p>
+                  <strong>Read-Only Access:</strong> You can view all offers and
+                  their details, but cannot modify them. Contact a super admin
+                  for changes.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -658,57 +685,69 @@ const OffersTab: React.FC<OffersTabProps> = ({
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className={`transition-all duration-200 flex-1 ${
-                        offer.isActive
-                          ? "border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                          : "border-green-600 text-green-400 hover:bg-green-600 hover:text-white"
-                      }`}
-                      title={
-                        offer.isActive ? "Deactivate offer" : "Activate offer"
-                      }
-                      onClick={() => handleToggleOfferStatus(offer)}
-                    >
-                      {offer.isActive ? (
-                        <Pause className="w-4 h-4" />
-                      ) : (
-                        <Play className="w-4 h-4" />
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-600/30">
+                    <div className="flex items-center space-x-2">
+                      {/* Activate/Deactivate button - only show for super_admin */}
+                      {userRole === "super_admin" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={`${
+                            offer.isActive
+                              ? "border-yellow-600 text-yellow-400 hover:bg-yellow-600/20"
+                              : "border-green-600 text-green-400 hover:bg-green-600/20"
+                          } transition-all duration-200`}
+                          onClick={() => handleToggleOfferStatus(offer)}
+                          title={
+                            offer.isActive
+                              ? "Deactivate offer"
+                              : "Activate offer"
+                          }
+                        >
+                          {offer.isActive ? (
+                            <Pause className="w-4 h-4" />
+                          ) : (
+                            <Play className="w-4 h-4" />
+                          )}
+                          {offer.isActive ? "Pause" : "Play"}
+                        </Button>
                       )}
-                    </Button>
 
-                    {/* Edit button - only show for inactive offers */}
-                    {!offer.isActive && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-green-600 text-green-400 hover:bg-green-600 hover:text-white transition-all duration-200 flex-1"
-                        title="Edit offer"
-                        onClick={() => handleEditOffer(offer)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    )}
+                      {/* Edit button - only show for super_admin and inactive offers */}
+                      {userRole === "super_admin" && !offer.isActive && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-blue-600 text-blue-400 hover:bg-blue-600/20 transition-all duration-200"
+                          title="Edit offer"
+                          onClick={() => handleEditOffer(offer)}
+                        >
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </Button>
+                      )}
 
-                    {/* Delete button - only show for inactive offers */}
-                    {!offer.isActive && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white transition-all duration-200 flex-1"
-                        title="Delete offer"
-                        onClick={() => handleDeleteOffer(offer)}
-                        disabled={deletingOffer === offer.offerId}
-                      >
-                        {deletingOffer === offer.offerId ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
-                        ) : (
+                      {/* Delete button - only show for super_admin and inactive offers */}
+                      {userRole === "super_admin" && !offer.isActive && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-red-600 text-red-400 hover:bg-red-600/20 transition-all duration-200"
+                          title="Delete offer"
+                          onClick={() => handleDeleteOffer(offer)}
+                        >
                           <Trash2 className="w-4 h-4" />
-                        )}
-                      </Button>
-                    )}
+                          Delete
+                        </Button>
+                      )}
+
+                      {/* Read-only message for admin users */}
+                      {userRole === "admin" && (
+                        <div className="text-xs text-gray-400 bg-gray-800/50 px-3 py-2 rounded-lg border border-gray-600/30">
+                          📖 Read-only access
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

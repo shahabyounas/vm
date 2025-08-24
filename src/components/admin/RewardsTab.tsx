@@ -534,7 +534,11 @@ const RewardsTab: React.FC<RewardsTabProps> = ({ allUsers }) => {
                     <div className="flex justify-between">
                       <span className="text-gray-400">Progress:</span>
                       <span className="text-white">
-                        {selectedReward.scanHistory?.length || 0} /{" "}
+                        {selectedReward.scanHistory?.reduce(
+                          (total, scan) => total + (scan.stampsEarned || 1),
+                          0
+                        ) || 0}{" "}
+                        /{" "}
                         {selectedReward.offerSnapshot?.stampRequirement || "?"}{" "}
                         stamps
                       </span>

@@ -40,17 +40,27 @@ const ProgressCard = ({
 
   // Calculate total completed rewards (rewards that have been fully earned)
   const completedRewards =
-    user.completedRewards?.filter(
-      reward =>
-        reward.scanHistory?.length >= reward.offerSnapshot?.stampRequirement
-    ) || [];
+    user.completedRewards?.filter(reward => {
+      const totalStampsEarned =
+        reward.scanHistory?.reduce(
+          (total, scan) => total + (scan.stampsEarned || 1),
+          0
+        ) || 0;
+
+      return totalStampsEarned >= (reward.offerSnapshot?.stampRequirement || 0);
+    }) || [];
 
   // Calculate total in-progress rewards (rewards being worked on)
   const inProgressRewards =
-    user.completedRewards?.filter(
-      reward =>
-        reward.scanHistory?.length < reward.offerSnapshot?.stampRequirement
-    ) || [];
+    user.completedRewards?.filter(reward => {
+      const totalStampsEarned =
+        reward.scanHistory?.reduce(
+          (total, scan) => total + (scan.stampsEarned || 1),
+          0
+        ) || 0;
+
+      return totalStampsEarned < (reward.offerSnapshot?.stampRequirement || 0);
+    }) || [];
 
   // Calculate rewards ready to redeem (completed but not claimed)
   const rewardsReadyToRedeem = completedRewards.filter(
@@ -60,7 +70,13 @@ const ProgressCard = ({
   // Calculate total stamps from all rewards (both completed and in-progress)
   const totalStampsFromRewards =
     user.completedRewards?.reduce((total, reward) => {
-      return total + (reward.scanHistory?.length || 0);
+      return (
+        total +
+        (reward.scanHistory?.reduce(
+          (scanTotal, scan) => scanTotal + (scan.stampsEarned || 1),
+          0
+        ) || 0)
+      );
     }, 0) || 0;
 
   // Use the higher value between purchases and calculated stamps for total
@@ -153,16 +169,23 @@ const ProgressCard = ({
             {expandedSections.inProgress && (
               <div className="space-y-3">
                 {displayedInProgress.map((reward, index) => {
-                  const currentProgress = reward.scanHistory?.length || 0;
+                  const totalStampsEarned =
+                    reward.scanHistory?.reduce(
+                      (total, scan) => total + (scan.stampsEarned || 1),
+                      0
+                    ) || 0;
                   const currentRequired =
                     reward.offerSnapshot?.stampRequirement || 0;
                   const progressPercentage =
                     currentRequired > 0
-                      ? Math.min((currentProgress / currentRequired) * 100, 100)
+                      ? Math.min(
+                          (totalStampsEarned / currentRequired) * 100,
+                          100
+                        )
                       : 0;
                   const remainingStamps = Math.max(
                     0,
-                    currentRequired - currentProgress
+                    currentRequired - totalStampsEarned
                   );
 
                   return (
@@ -177,7 +200,7 @@ const ProgressCard = ({
                         <div className="flex justify-between items-center text-sm mb-2">
                           <span className="text-gray-400">Progress:</span>
                           <span className="text-white font-medium">
-                            {currentProgress} / {currentRequired} stamps
+                            {totalStampsEarned} / {currentRequired} stamps
                           </span>
                         </div>
                         <div className="w-full bg-gray-600 rounded-full h-2 mb-3">

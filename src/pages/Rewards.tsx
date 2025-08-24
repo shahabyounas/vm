@@ -126,48 +126,113 @@ const Rewards = () => {
       </div>
 
       <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Current Progress */}
-        {currentProgress && (
-          <div className="mb-8">
-            <div className="bg-gradient-to-r from-gray-900/90 to-red-900/90 border border-red-800/50 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-white flex items-center">
-                  <Clock className="w-5 h-5 mr-2 text-yellow-400" />
-                  Current Progress
-                </h2>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-white">
-                    {user.purchases}
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    of {currentProgress.settingsSnapshot.purchaseLimit}{" "}
-                    purchases
-                  </div>
-                </div>
-              </div>
+        {/* Current Progress - In-Progress Rewards */}
+        {user.completedRewards &&
+          user.completedRewards.filter(r => {
+            const totalStampsEarned =
+              r.scanHistory?.reduce(
+                (total, scan) => total + (scan.stampsEarned || 1),
+                0
+              ) || 0;
+            return totalStampsEarned < (r.offerSnapshot?.stampRequirement || 0);
+          }).length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+                <Clock className="w-5 h-5 mr-2 text-yellow-400" />
+                Rewards in Progress
+              </h2>
 
-              {/* Progress Bar */}
-              <div className="w-full bg-gray-700 rounded-full h-3 mb-4">
-                <div
-                  className="bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${(user.purchases / currentProgress.settingsSnapshot.purchaseLimit) * 100}%`,
-                  }}
-                ></div>
-              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {user.completedRewards
+                  .filter(reward => {
+                    const totalStampsEarned =
+                      reward.scanHistory?.reduce(
+                        (total, scan) => total + (scan.stampsEarned || 1),
+                        0
+                      ) || 0;
+                    return (
+                      totalStampsEarned <
+                      (reward.offerSnapshot?.stampRequirement || 0)
+                    );
+                  })
+                  .map(reward => {
+                    const totalStampsEarned =
+                      reward.scanHistory?.reduce(
+                        (total, scan) => total + (scan.stampsEarned || 1),
+                        0
+                      ) || 0;
+                    const required =
+                      reward.offerSnapshot?.stampRequirement || 0;
+                    const progressPercentage =
+                      required > 0
+                        ? Math.min((totalStampsEarned / required) * 100, 100)
+                        : 0;
 
-              <div className="text-center">
-                <div className="text-lg font-semibold text-white mb-2">
-                  {getRewardIcon(currentProgress.rewardType)}{" "}
-                  {currentProgress.rewardDescription}
-                </div>
-                <p className="text-gray-300 text-sm">
-                  {currentProgress.settingsSnapshot.descriptionMessage}
-                </p>
+                    return (
+                      <div
+                        key={reward.rewardId}
+                        className="bg-gradient-to-br from-gray-900/90 to-blue-900/90 border border-blue-800/50 rounded-xl p-6 hover:border-blue-600/70 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20"
+                      >
+                        <div className="text-center mb-4">
+                          <div className="text-4xl mb-2">🎯</div>
+                          <div className="text-xl font-bold text-white mb-1">
+                            {reward.offerSnapshot?.offerName ||
+                              "Loyalty Reward"}
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            {reward.rewardDescription}
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="mb-4">
+                          <div className="flex justify-between text-sm mb-2">
+                            <span className="text-gray-400">Progress:</span>
+                            <span className="text-white font-medium">
+                              {totalStampsEarned} / {required} stamps
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-700 rounded-full h-3">
+                            <div
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+                              style={{ width: `${progressPercentage}%` }}
+                            ></div>
+                          </div>
+                          <div className="text-center mt-2">
+                            <div className="text-blue-300 text-xs">
+                              {required - totalStampsEarned > 0
+                                ? `${required - totalStampsEarned} more stamps needed`
+                                : "🎉 Ready to complete!"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 mb-4">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-400">Type:</span>
+                            <span className="text-white capitalize">
+                              {reward.rewardType}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-400">Value:</span>
+                            <span className="text-white">
+                              {reward.rewardValue}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-400">Started:</span>
+                            <span className="text-white">
+                              {reward.createdAt.toDate().toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Available Rewards */}
         <div className="mb-8">
@@ -225,7 +290,7 @@ const Rewards = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-400">Goal:</span>
                       <span className="text-white">
-                        {reward.settingsSnapshot.purchaseLimit} purchases
+                        {reward.offerSnapshot?.stampRequirement || 0} stamps
                       </span>
                     </div>
                   </div>
@@ -291,7 +356,7 @@ const Rewards = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Goal:</span>
                       <span className="text-gray-300">
-                        {reward.settingsSnapshot.purchaseLimit} purchases
+                        {reward.offerSnapshot?.stampRequirement || 0} stamps
                       </span>
                     </div>
                   </div>

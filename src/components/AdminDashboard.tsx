@@ -12,7 +12,6 @@ import {
   X,
   QrCode,
   LogOut,
-  Home,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { useNavigate } from "react-router-dom";
@@ -150,23 +149,49 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       label: "Overview",
       icon: BarChart3,
       color: "text-blue-400",
+      roles: ["admin", "super_admin"], // Both admin and super_admin can see overview
     },
-    { id: "users", label: "Users", icon: Users, color: "text-green-400" },
-    { id: "offers", label: "Offers", icon: Gift, color: "text-purple-400" },
-    { id: "rewards", label: "Rewards", icon: Target, color: "text-yellow-400" },
+    {
+      id: "users",
+      label: "Users",
+      icon: Users,
+      color: "text-green-400",
+      roles: ["super_admin"], // Only super_admin can see users
+    },
+    {
+      id: "offers",
+      label: "Offers",
+      icon: Gift,
+      color: "text-purple-400",
+      roles: ["admin", "super_admin"], // Both can see offers
+    },
+    {
+      id: "rewards",
+      label: "Rewards",
+      icon: Target,
+      color: "text-yellow-400",
+      roles: ["super_admin"], // Only super_admin can see rewards
+    },
     {
       id: "analytics",
       label: "Analytics",
       icon: TrendingUp,
       color: "text-indigo-400",
+      roles: ["super_admin"], // Only super_admin can see analytics
     },
     {
       id: "settings",
       label: "Settings",
       icon: Settings,
       color: "text-red-400",
+      roles: ["super_admin"], // Only super_admin can see settings
     },
   ];
+
+  // Filter navigation items based on user role
+  const availableNavigationItems = navigationItems.filter(item =>
+    item.roles.includes(user.role)
+  );
 
   const handleTabChange = (tab: typeof activeTab) => {
     setActiveTab(tab);
@@ -225,7 +250,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Navigation Menu */}
           <nav className="flex-1 p-4 space-y-2">
-            {navigationItems.map(item => {
+            {availableNavigationItems.map(item => {
               const Icon = item.icon;
               return (
                 <button
@@ -256,14 +281,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               Scan QR
             </Button>
             <Button
-              onClick={() => navigate("/dashboard")}
-              variant="outline"
-              className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Dashboard
-            </Button>
-            <Button
               onClick={onLogout}
               variant="outline"
               className="w-full border-red-600 text-red-300 hover:bg-red-700/20"
@@ -289,13 +306,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  {navigationItems.find(item => item.id === activeTab)?.label}
+                  {
+                    availableNavigationItems.find(item => item.id === activeTab)
+                      ?.label
+                  }
                 </h2>
                 <p className="text-red-300 text-sm">
                   {activeTab === "overview" &&
                     "System overview and key metrics"}
                   {activeTab === "users" && "Manage users and permissions"}
-                  {activeTab === "offers" && "Create and manage loyalty offers"}
+                  {activeTab === "offers" &&
+                    (user.role === "super_admin"
+                      ? "Create and manage loyalty offers"
+                      : "View loyalty offers (read-only access)")}
                   {activeTab === "rewards" && "Track rewards and redemptions"}
                   {activeTab === "analytics" &&
                     "Performance insights and reports"}

@@ -209,7 +209,8 @@ const Scan = () => {
 
       // Show success message for 3 seconds before redirecting
       setTimeout(() => {
-        navigate("/dashboard");
+        // Force a page refresh to ensure the latest data is loaded
+        window.location.href = "/dashboard";
       }, 1500);
     } catch (error) {
       console.error("Error processing QR scan:", error);
