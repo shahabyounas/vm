@@ -329,6 +329,11 @@ const Scan = () => {
                         {scannedQRData.stampsPerScan}x Multiplier Active
                       </div>
                     )}
+                  <div className="text-xs text-green-300 mt-2">
+                    This scan added {scannedQRData?.stampsPerScan || 1} stamp
+                    {scannedQRData?.stampsPerScan > 1 ? "s" : ""} to the user's
+                    progress
+                  </div>
                 </div>
                 <div className="mt-4 text-xs text-green-500">
                   Redirecting to dashboard...

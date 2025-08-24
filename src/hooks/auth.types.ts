@@ -31,6 +31,8 @@ export interface Reward {
 export interface ScanEvent {
   scannedBy: string;
   timestamp: Timestamp;
+  stampsEarned: number; // Number of stamps earned in this scan
+  scanId?: string; // Unique identifier for this scan
 }
 
 export interface User {

@@ -231,7 +231,12 @@ const RewardsTab: React.FC<RewardsTabProps> = ({ allUsers }) => {
                     {reward.offerSnapshot?.offerName || "Unknown Offer"}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {reward.scanHistory?.length || 0} stamps collected
+                    {reward.scanHistory?.length || 0} scans •{" "}
+                    {reward.scanHistory?.reduce(
+                      (total, scan) => total + (scan.stampsEarned || 1),
+                      0
+                    ) || 0}{" "}
+                    stamps
                   </div>
                 </div>
 
@@ -318,7 +323,12 @@ const RewardsTab: React.FC<RewardsTabProps> = ({ allUsers }) => {
                       {reward.offerSnapshot?.offerName || "Unknown Offer"}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {reward.scanHistory?.length || 0} stamps collected
+                      {reward.scanHistory?.length || 0} scans •{" "}
+                      {reward.scanHistory?.reduce(
+                        (total, scan) => total + (scan.stampsEarned || 1),
+                        0
+                      ) || 0}{" "}
+                      stamps
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -539,12 +549,40 @@ const RewardsTab: React.FC<RewardsTabProps> = ({ allUsers }) => {
                   <Clock className="w-4 h-4 mr-2 text-yellow-400" />
                   Scan History ({selectedReward.scanHistory?.length || 0} scans)
                 </h4>
+
+                {/* Scan Summary */}
+                <div className="mb-4 p-3 bg-gray-700/20 rounded-lg border border-gray-600/30">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-white">
+                        {selectedReward.scanHistory?.length || 0}
+                      </div>
+                      <div className="text-gray-400 text-xs">Total Scans</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-green-400">
+                        {selectedReward.scanHistory?.reduce(
+                          (total, scan) => total + (scan.stampsEarned || 1),
+                          0
+                        ) || 0}
+                      </div>
+                      <div className="text-gray-400 text-xs">Total Stamps</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-blue-400">
+                        {selectedReward.offerSnapshot?.stampRequirement || 0}
+                      </div>
+                      <div className="text-gray-400 text-xs">Required</div>
+                    </div>
+                  </div>
+                </div>
+
                 {selectedReward.scanHistory &&
                 selectedReward.scanHistory.length > 0 ? (
                   <div className="space-y-3">
                     {selectedReward.scanHistory.map((scan, index) => (
                       <div
-                        key={index}
+                        key={scan.scanId || index}
                         className="bg-gray-700/30 rounded-lg p-3 border border-gray-600/30"
                       >
                         <div className="flex items-center justify-between">
@@ -554,17 +592,26 @@ const RewardsTab: React.FC<RewardsTabProps> = ({ allUsers }) => {
                                 {index + 1}
                               </span>
                             </div>
-                            <div>
+                            <div className="flex-1">
                               <div className="text-sm font-medium text-white">
                                 Scanned by: {scan.scannedBy || "Unknown Admin"}
                               </div>
                               <div className="text-xs text-gray-400">
                                 {scan.timestamp.toDate().toLocaleString()}
                               </div>
+                              <div className="text-xs text-green-400 font-medium">
+                                +{scan.stampsEarned || 1} stamp
+                                {scan.stampsEarned > 1 ? "s" : ""} earned
+                              </div>
                             </div>
                           </div>
-                          <div className="text-xs text-gray-500">
-                            Stamp #{index + 1}
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500">
+                              Scan #{index + 1}
+                            </div>
+                            <div className="text-xs text-blue-400 font-medium">
+                              {scan.scanId ? scan.scanId.slice(-8) : "N/A"}
+                            </div>
                           </div>
                         </div>
                       </div>

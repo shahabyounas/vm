@@ -116,22 +116,19 @@ export const addPurchase = async (
   const newProgress = currentProgress + (targetOffer.stampsPerScan || 1);
   const isCompleted = newProgress >= stampRequirement;
   
-  // Create multiple scan events based on stampsPerScan
+  // Create a single scan event with the total stamps earned
   const stampsPerScan = targetOffer.stampsPerScan || 1;
-  const scanEvents = [];
-  
-  for (let i = 0; i < stampsPerScan; i++) {
-    scanEvents.push({
-      scannedBy: user?.email || "unknown",
-      timestamp: Timestamp.now(),
-      stampsEarned: 1, // Each individual scan event represents 1 stamp
-    });
-  }
+  const scanEvent = {
+    scannedBy: user?.email || "unknown",
+    timestamp: Timestamp.now(),
+    stampsEarned: stampsPerScan, // Total stamps earned in this single scan
+    scanId: `scan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Unique scan identifier
+  };
 
-  // Update the reward with new scan events
+  // Update the reward with new scan event
   const updatedReward = {
     ...rewardToUpdate,
-    scanHistory: [...(rewardToUpdate.scanHistory || []), ...scanEvents],
+    scanHistory: [...(rewardToUpdate.scanHistory || []), scanEvent],
   };
 
   // Update or add the reward to completedRewards array
@@ -151,7 +148,7 @@ export const addPurchase = async (
   const stampsEarned = targetOffer.stampsPerScan || 1;
   
   console.log(`Adding ${stampsEarned} stamps for offer ${targetOfferId}. Progress: ${currentProgress} -> ${newProgress}/${stampRequirement}`);
-  console.log(`Created ${scanEvents.length} scan events for ${stampsEarned} stamps`);
+  console.log(`Created scan event with ${stampsEarned} stamps for user ${targetUserData.email}`);
 
   await updateDoc(userRef, {
     lastScanAt: Timestamp.now(),
