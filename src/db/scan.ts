@@ -62,10 +62,6 @@ export const addPurchase = async (
   }
   
   const targetOffer = offerSnap.data() as Offer;
-  if (!targetOffer.isActive) {
-    throw new Error("Specified offer is no longer active");
-  }
-
   const stampRequirement = targetOffer.stampRequirement;
   
   // Check if user already has an ACTIVE (in-progress) reward for this offer
@@ -87,6 +83,9 @@ export const addPurchase = async (
     if (currentProgress >= stampRequirement) {
       throw new Error("User has already completed this offer");
     }
+    
+    // Allow continuing even if offer is inactive (user has existing progress)
+    console.log(`User continuing existing offer: ${targetOfferId}, current progress: ${currentProgress}/${stampRequirement}`);
   } else {
     // No active reward for this offer - check if offer is active for new users
     if (!targetOffer.isActive) {
@@ -117,16 +116,22 @@ export const addPurchase = async (
   const newProgress = currentProgress + (targetOffer.stampsPerScan || 1);
   const isCompleted = newProgress >= stampRequirement;
   
-  const scanEvent = {
-    scannedBy: user?.email || "unknown",
-    timestamp: Timestamp.now(),
-    stampsEarned: targetOffer.stampsPerScan || 1, // Track how many stamps were earned in this scan
-  };
+  // Create multiple scan events based on stampsPerScan
+  const stampsPerScan = targetOffer.stampsPerScan || 1;
+  const scanEvents = [];
+  
+  for (let i = 0; i < stampsPerScan; i++) {
+    scanEvents.push({
+      scannedBy: user?.email || "unknown",
+      timestamp: Timestamp.now(),
+      stampsEarned: 1, // Each individual scan event represents 1 stamp
+    });
+  }
 
-  // Update the reward with new scan
+  // Update the reward with new scan events
   const updatedReward = {
     ...rewardToUpdate,
-    scanHistory: [...(rewardToUpdate.scanHistory || []), scanEvent],
+    scanHistory: [...(rewardToUpdate.scanHistory || []), ...scanEvents],
   };
 
   // Update or add the reward to completedRewards array
@@ -144,6 +149,9 @@ export const addPurchase = async (
 
   // Calculate total stamps earned from this scan
   const stampsEarned = targetOffer.stampsPerScan || 1;
+  
+  console.log(`Adding ${stampsEarned} stamps for offer ${targetOfferId}. Progress: ${currentProgress} -> ${newProgress}/${stampRequirement}`);
+  console.log(`Created ${scanEvents.length} scan events for ${stampsEarned} stamps`);
 
   await updateDoc(userRef, {
     lastScanAt: Timestamp.now(),

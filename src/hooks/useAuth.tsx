@@ -162,7 +162,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     targetEmail?: string,
     targetUid?: string,
     offerId?: string
-  ) => addPurchase(user, targetEmail, targetUid, offerId);
+  ) => addPurchase(null, targetEmail, targetUid, offerId);
   const updateUserRoleWithUser = (
     userId: string,
     newRole: import("./auth.types").UserRole

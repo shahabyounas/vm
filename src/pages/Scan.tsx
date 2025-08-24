@@ -109,6 +109,7 @@ const Scan = () => {
       // Handle different actions based on QR data
       if (qrData.action === "redeem_reward" && qrData.rewardId) {
         // Handle reward redemption
+        console.log("Processing reward redemption for:", qrData.rewardId);
         await redeemReward(
           null,
           qrData.userEmail,
@@ -117,6 +118,8 @@ const Scan = () => {
         );
       } else {
         // Handle stamp collection
+        console.log("Processing stamp collection for offer:", qrData.offerId);
+        console.log("QR Data:", qrData);
         await addPurchase(qrData.userEmail, qrData.userId, qrData.offerId);
       }
 
@@ -145,41 +148,55 @@ const Scan = () => {
           const stampText = stampsEarned === 1 ? "stamp" : "stamps";
           successMessage = `${stampsEarned} ${stampText} added for ${qrData.offerName || "loyalty program"}!`;
 
-          // Get updated user data to show current purchase count
+          // Get updated user data to show current purchase count and progress
           const updatedUserSnap = await getDoc(userRef);
           if (updatedUserSnap.exists()) {
             const updatedUserData = updatedUserSnap.data();
             const purchaseCount = updatedUserData.purchases || 0;
             successMessage += ` Total stamps: ${purchaseCount}`;
-          }
 
-          if (qrData.offerId && qrData.offerId !== "default_offer") {
-            // Check if user has completed this specific offer
-            const currentProgress = updatedUserData.currentOfferProgress || 0;
-            const offerRequirement = 5; // TODO: Get from actual offer data
-            const remaining = Math.max(0, offerRequirement - currentProgress);
+            if (qrData.offerId && qrData.offerId !== "default_offer") {
+              // Find the specific offer reward to show accurate progress
+              const offerReward = updatedUserData.completedRewards?.find(
+                reward => reward.offerSnapshot?.offerId === qrData.offerId
+              );
 
-            if (currentProgress >= offerRequirement) {
-              successMessage += " - Offer completed! 🎉";
-              trackEvent("offer_completed", {
-                scanned_user: qrData.userEmail,
-                offer_id: qrData.offerId,
-              });
+              if (offerReward) {
+                const currentProgress = offerReward.scanHistory?.length || 0;
+                const offerRequirement =
+                  offerReward.offerSnapshot?.stampRequirement || 5;
+                const remaining = Math.max(
+                  0,
+                  offerRequirement - currentProgress
+                );
+
+                console.log(
+                  `Offer progress: ${currentProgress}/${offerRequirement}, remaining: ${remaining}`
+                );
+
+                if (currentProgress >= offerRequirement) {
+                  successMessage += " - Offer completed! 🎉";
+                  trackEvent("offer_completed", {
+                    scanned_user: qrData.userEmail,
+                    offer_id: qrData.offerId,
+                  });
+                } else {
+                  successMessage += ` - Progress: ${currentProgress}/${offerRequirement} (${remaining} more needed)`;
+                }
+              }
             } else {
-              successMessage += ` - ${remaining} more stamps needed for reward`;
-            }
-          } else {
-            // Fallback to old system
-            const userPurchaseLimit = updatedUserData.purchaseLimit || 5;
-            if (purchaseCount >= userPurchaseLimit) {
-              successMessage += " - Reward ready! 🎉";
-              trackEvent("reward_ready", {
-                scanned_user: qrData.userEmail,
-                scanned_uid: qrData.userId,
-              });
-            } else {
-              const remaining = userPurchaseLimit - purchaseCount;
-              successMessage += ` - ${remaining} more to earn reward`;
+              // Fallback to old system
+              const userPurchaseLimit = updatedUserData.purchaseLimit || 5;
+              if (purchaseCount >= userPurchaseLimit) {
+                successMessage += " - Reward ready! 🎉";
+                trackEvent("reward_ready", {
+                  scanned_user: qrData.userEmail,
+                  scanned_uid: qrData.userId,
+                });
+              } else {
+                const remaining = userPurchaseLimit - purchaseCount;
+                successMessage += ` - ${remaining} more to earn reward`;
+              }
             }
           }
         }
@@ -306,6 +323,12 @@ const Scan = () => {
                       Offer: {scannedQRData.offerName}
                     </div>
                   )}
+                  {scannedQRData?.stampsPerScan &&
+                    scannedQRData.stampsPerScan > 1 && (
+                      <div className="text-xs text-green-400 bg-green-900/20 px-2 py-1 rounded-full inline-block">
+                        {scannedQRData.stampsPerScan}x Multiplier Active
+                      </div>
+                    )}
                 </div>
                 <div className="mt-4 text-xs text-green-500">
                   Redirecting to dashboard...
