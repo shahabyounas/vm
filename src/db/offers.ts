@@ -1,6 +1,6 @@
 import { db } from "@/lib/utils";
 import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, where, Timestamp, deleteDoc } from "firebase/firestore";
-import { Offer, User } from "@/hooks/auth.types";
+import { Offer, User, Reward } from "@/hooks/auth.types";
 import { 
   DEFAULT_OFFER_NAME, 
   DEFAULT_OFFER_DESCRIPTION, 
@@ -116,11 +116,26 @@ export const deleteOffer = async (adminUser: User, offerId: string): Promise<voi
 
   // Check if any users are currently working on this offer
   const usersRef = collection(db, "users");
-  const q = query(usersRef, where("currentOfferId", "==", offerId));
+  const q = query(usersRef, where("completedRewards", "array-contains", { "offerSnapshot.offerId": offerId }));
   const querySnapshot = await getDocs(q);
   
-  if (!querySnapshot.empty) {
-    throw new Error("Cannot delete offer - users are currently working on it");
+  // Check if any users have active (in-progress) rewards for this offer
+  let hasActiveUsers = false;
+  querySnapshot.forEach(doc => {
+    const userData = doc.data();
+    const activeReward = userData.completedRewards?.find(
+      (reward: Reward) => 
+        reward.offerSnapshot?.offerId === offerId && 
+        reward.scanHistory?.length < reward.offerSnapshot?.stampRequirement &&
+        !reward.claimedAt
+    );
+    if (activeReward) {
+      hasActiveUsers = true;
+    }
+  });
+  
+  if (hasActiveUsers) {
+    throw new Error("Cannot delete offer - users are actively collecting stamps. Deactivate the offer instead to hide it from new users while allowing existing users to complete their rewards.");
   }
 
   await deleteDoc(doc(db, "offers", offerId));

@@ -88,9 +88,10 @@ export const addPurchase = async (
       throw new Error("User has already completed this offer");
     }
   } else {
-    // No active reward for this offer - create new reward
-    // Users can start new rewards even if they have completed unredeemed rewards
-    // This allows them to accumulate multiple rewards and redeem them later
+    // No active reward for this offer - check if offer is active for new users
+    if (!targetOffer.isActive) {
+      throw new Error("This offer is no longer active for new users. Only users who have already started collecting stamps can continue.");
+    }
     
     // Create new reward for this offer
     rewardToUpdate = {

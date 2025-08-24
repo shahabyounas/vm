@@ -149,7 +149,22 @@ const Dashboard = () => {
                 {offers && offers.length > 0 ? (
                   <div className="grid gap-4">
                     {offers
-                      .filter(offer => offer.isActive)
+                      .filter(offer => {
+                        // Show active offers to all users
+                        if (offer.isActive) return true;
+
+                        // For inactive offers, only show to users who are already collecting stamps
+                        const userHasActiveRewardForOffer =
+                          user.completedRewards?.find(
+                            reward =>
+                              reward.offerSnapshot?.offerId === offer.offerId &&
+                              reward.scanHistory?.length <
+                                reward.offerSnapshot?.stampRequirement &&
+                              !reward.claimedAt
+                          );
+
+                        return userHasActiveRewardForOffer !== undefined;
+                      })
                       .map(offer => {
                         // Check if user has a completed but unredeemed reward for this offer
                         const completedUnredeemedReward =
@@ -188,15 +203,27 @@ const Dashboard = () => {
                                 <p className="text-gray-300 text-sm">
                                   {offer.description}
                                 </p>
+                                {!offer.isActive && (
+                                  <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/20 px-2 py-1 rounded-full inline-block">
+                                    ⚠️ Offer is inactive - you can continue
+                                    collecting stamps
+                                  </div>
+                                )}
                               </div>
                               <span
                                 className={`px-3 py-1 rounded-full text-xs font-medium ${
                                   activeRewardForOffer
-                                    ? "bg-green-600/80 text-white border border-green-500/50 shadow-lg"
+                                    ? offer.isActive
+                                      ? "bg-green-600/80 text-white border border-green-500/50 shadow-lg"
+                                      : "bg-yellow-600/80 text-white border border-yellow-500/50 shadow-lg"
                                     : "bg-gray-600/80 text-gray-200 border border-gray-500/50"
                                 }`}
                               >
-                                {activeRewardForOffer ? "ACTIVE" : "AVAILABLE"}
+                                {activeRewardForOffer
+                                  ? offer.isActive
+                                    ? "ACTIVE"
+                                    : "CONTINUING"
+                                  : "AVAILABLE"}
                               </span>
                             </div>
 
@@ -243,9 +270,15 @@ const Dashboard = () => {
                                     setSelectedQRData(qrData);
                                     setShowQRModal(true);
                                   }}
-                                  className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg"
+                                  className={`w-full px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg ${
+                                    offer.isActive
+                                      ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
+                                      : "bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white"
+                                  }`}
                                 >
-                                  Continue Collecting
+                                  {offer.isActive
+                                    ? "Continue Collecting"
+                                    : "Continue Collecting (Inactive)"}
                                 </button>
                               ) : (
                                 <button
