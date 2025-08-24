@@ -26,6 +26,9 @@ import {
   AlertCircle,
   CheckCircle,
   Power,
+  PowerOff,
+  Play,
+  Pause,
 } from "lucide-react";
 
 interface OffersTabProps {
@@ -53,6 +56,12 @@ const OffersTab: React.FC<OffersTabProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [deletingOffer, setDeletingOffer] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: "delete" | "activate" | "deactivate";
+    offer: Offer;
+    message: string;
+  } | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
     name: "",
     description: "",
@@ -223,12 +232,25 @@ const OffersTab: React.FC<OffersTabProps> = ({
 
   // Handle offer activation/deactivation
   const handleToggleOfferStatus = async (offer: Offer) => {
-    try {
-      if (!currentUser) {
-        setError("User context not available");
-        return;
-      }
+    const action = offer.isActive ? "deactivate" : "activate";
+    const message = offer.isActive
+      ? `Are you sure you want to deactivate "${offer.name}"? This will hide it from new users, but existing users can continue collecting stamps.`
+      : `Are you sure you want to activate "${offer.name}"? This will make it visible to all customers.`;
 
+    setConfirmAction({
+      type: action,
+      offer,
+      message,
+    });
+    setIsConfirmModalOpen(true);
+  };
+
+  // Confirm and execute offer status change
+  const confirmToggleOfferStatus = async () => {
+    if (!confirmAction || !currentUser) return;
+
+    try {
+      const { offer } = confirmAction;
       const newStatus = !offer.isActive;
       await updateOffer(currentUser, offer.offerId, { isActive: newStatus });
 
@@ -245,9 +267,11 @@ const OffersTab: React.FC<OffersTabProps> = ({
       setError(
         err instanceof Error
           ? err.message
-          : `Failed to ${offer.isActive ? "deactivate" : "activate"} offer. Please try again.`
+          : `Failed to ${confirmAction.type} offer. Please try again.`
       );
       console.error("Error toggling offer status:", err);
+    } finally {
+      closeConfirmModal();
     }
   };
 
@@ -354,15 +378,24 @@ const OffersTab: React.FC<OffersTabProps> = ({
   };
 
   // Handle delete offer
-  const handleDeleteOffer = async (offerId: string) => {
-    try {
-      if (!currentUser) {
-        setError("User context not available");
-        return;
-      }
+  const handleDeleteOffer = async (offer: Offer) => {
+    const message = `Are you sure you want to delete "${offer.name}"? This action cannot be undone and will remove the offer completely.`;
 
-      setDeletingOffer(offerId);
-      await deleteOffer(currentUser, offerId);
+    setConfirmAction({
+      type: "delete",
+      offer,
+      message,
+    });
+    setIsConfirmModalOpen(true);
+  };
+
+  // Confirm and execute offer deletion
+  const confirmDeleteOffer = async () => {
+    if (!confirmAction || !currentUser) return;
+
+    try {
+      setDeletingOffer(confirmAction.offer.offerId);
+      await deleteOffer(currentUser, confirmAction.offer.offerId);
 
       setSuccessMessage("Offer deleted successfully!");
       onOfferCreated?.(); // Refresh offers list
@@ -380,7 +413,14 @@ const OffersTab: React.FC<OffersTabProps> = ({
       console.error("Error deleting offer:", err);
     } finally {
       setDeletingOffer(null);
+      closeConfirmModal();
     }
+  };
+
+  // Close confirmation modal
+  const closeConfirmModal = () => {
+    setIsConfirmModalOpen(false);
+    setConfirmAction(null);
   };
 
   // Calculate default expiry date (10 years from now)
@@ -429,8 +469,9 @@ const OffersTab: React.FC<OffersTabProps> = ({
                 inactive
               </p>
               <p>
-                <strong>Admin Control:</strong> Only inactive offers can be
-                edited or deleted
+                <strong>Admin Control:</strong> Use Play button to activate
+                offers, Pause button to deactivate. Only inactive offers can be
+                edited or deleted.
               </p>
             </div>
           </div>
@@ -621,10 +662,10 @@ const OffersTab: React.FC<OffersTabProps> = ({
                     <Button
                       size="sm"
                       variant="outline"
-                      className={`border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white transition-all duration-200 flex-1 ${
+                      className={`transition-all duration-200 flex-1 ${
                         offer.isActive
-                          ? "border-green-600 text-green-400 hover:bg-green-600"
-                          : ""
+                          ? "border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                          : "border-green-600 text-green-400 hover:bg-green-600 hover:text-white"
                       }`}
                       title={
                         offer.isActive ? "Deactivate offer" : "Activate offer"
@@ -632,9 +673,9 @@ const OffersTab: React.FC<OffersTabProps> = ({
                       onClick={() => handleToggleOfferStatus(offer)}
                     >
                       {offer.isActive ? (
-                        <EyeOff className="w-4 h-4" />
+                        <Pause className="w-4 h-4" />
                       ) : (
-                        <Eye className="w-4 h-4" />
+                        <Play className="w-4 h-4" />
                       )}
                     </Button>
 
@@ -658,7 +699,7 @@ const OffersTab: React.FC<OffersTabProps> = ({
                         variant="outline"
                         className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white transition-all duration-200 flex-1"
                         title="Delete offer"
-                        onClick={() => handleDeleteOffer(offer.offerId)}
+                        onClick={() => handleDeleteOffer(offer)}
                         disabled={deletingOffer === offer.offerId}
                       >
                         {deletingOffer === offer.offerId ? (
@@ -944,7 +985,7 @@ const OffersTab: React.FC<OffersTabProps> = ({
                   </span>
                 </div>
                 <p className="text-blue-200 text-xs mt-1">
-                  New offers are created as inactive. Use the eye button to
+                  New offers are created as inactive. Use the Play button to
                   activate them when ready. Only inactive offers can be edited
                   or deleted.
                 </p>
@@ -1258,6 +1299,81 @@ const OffersTab: React.FC<OffersTabProps> = ({
                   disabled={isEditSubmitting}
                 >
                   Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {isConfirmModalOpen && confirmAction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl max-w-md w-full max-h-[80vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-gray-700/50 bg-gradient-to-r from-gray-800/50 to-gray-700/50">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-white flex items-center">
+                  {confirmAction.type === "delete" ? (
+                    <Trash2 className="w-5 h-5 mr-2 text-red-400" />
+                  ) : confirmAction.type === "activate" ? (
+                    <Play className="w-5 h-5 mr-2 text-green-400" />
+                  ) : (
+                    <Pause className="w-5 h-5 mr-2 text-yellow-400" />
+                  )}
+                  {confirmAction.type === "delete"
+                    ? "Delete Offer"
+                    : confirmAction.type === "activate"
+                      ? "Activate Offer"
+                      : "Deactivate Offer"}
+                </h3>
+                <button
+                  onClick={closeConfirmModal}
+                  className="text-gray-400 hover:text-white transition-colors duration-200 p-1 rounded-full hover:bg-gray-700"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-gray-300 text-sm">{confirmAction.message}</p>
+              <div className="flex justify-end space-x-3">
+                <Button
+                  variant="outline"
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white transition-all duration-200"
+                  onClick={closeConfirmModal}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className={`transition-all duration-200 ${
+                    confirmAction.type === "delete"
+                      ? "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+                      : confirmAction.type === "activate"
+                        ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                        : "bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800"
+                  }`}
+                  onClick={
+                    confirmAction.type === "delete"
+                      ? confirmDeleteOffer
+                      : confirmToggleOfferStatus
+                  }
+                  disabled={isSubmitting || isEditSubmitting}
+                >
+                  {isSubmitting || isEditSubmitting ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  ) : confirmAction.type === "delete" ? (
+                    <Trash2 className="w-4 h-4 mr-2" />
+                  ) : confirmAction.type === "activate" ? (
+                    <Play className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Pause className="w-4 h-4 mr-2" />
+                  )}
+                  {confirmAction.type === "delete"
+                    ? "Delete Offer"
+                    : confirmAction.type === "activate"
+                      ? "Activate Offer"
+                      : "Deactivate Offer"}
                 </Button>
               </div>
             </div>

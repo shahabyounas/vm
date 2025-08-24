@@ -37,7 +37,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  feedback?: string;
+  mobileNumber?: string;
   purchases: number;
   isRewardReady: boolean;
   createdAt: Timestamp;
@@ -92,7 +92,7 @@ export interface AuthContextType {
     name: string,
     email: string,
     password: string,
-    feedback?: string
+    mobileNumber?: string
   ) => Promise<User>;
   addPurchase: (targetEmail?: string, targetUid?: string, offerId?: string) => Promise<void>;
   logout: () => Promise<void>;

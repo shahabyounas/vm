@@ -281,6 +281,7 @@ const OffersManagementTab: React.FC<{
         name: offerName.trim(),
         description: offerDescription.trim(),
         stampRequirement,
+        stampsPerScan: 1, // Default to 1 stamp per scan
         rewardType,
         rewardValue: rewardValue.trim(),
         rewardDescription: rewardDescription.trim(),

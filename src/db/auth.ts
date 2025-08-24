@@ -63,7 +63,7 @@ export const registerUser = async (
   name: string,
   email: string,
   password: string,
-  feedback: string | undefined,
+  mobileNumber: string | undefined,
   settings: GlobalSettings | null
 ): Promise<User> => {
   try {
@@ -77,7 +77,7 @@ export const registerUser = async (
       id: cred.user.uid,
       name,
       email,
-      feedback,
+      mobileNumber,
       purchases: 0,
       isRewardReady: false,
       createdAt: now,

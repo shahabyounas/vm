@@ -156,8 +156,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     name: string,
     email: string,
     password: string,
-    feedback?: string
-  ) => registerUser(name, email, password, feedback, null);
+    mobileNumber?: string
+  ) => registerUser(name, email, password, mobileNumber, null);
   const addPurchaseWithUser = (
     targetEmail?: string,
     targetUid?: string,
