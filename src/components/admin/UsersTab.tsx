@@ -247,7 +247,7 @@ const UsersTab: React.FC<UsersTabProps> = ({
                     <span className="text-white font-medium">
                       {user.purchases}
                     </span>
-                    <span className="text-gray-400">Purchases</span>
+                    <span className="text-gray-400">Stamps</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Award className="w-4 h-4 text-yellow-400" />
@@ -332,7 +332,7 @@ const UsersTab: React.FC<UsersTabProps> = ({
                   Status
                 </th>
                 <th className="text-left p-4 text-gray-300 font-medium">
-                  Purchases
+                  Stamps
                 </th>
                 <th className="text-left p-4 text-gray-300 font-medium">
                   Rewards

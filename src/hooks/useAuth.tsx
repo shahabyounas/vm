@@ -163,7 +163,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     targetEmail?: string,
     targetUid?: string,
     offerId?: string
-  ) => addPurchase(null, targetEmail, targetUid, offerId);
+  ) => addPurchase(user, targetEmail, targetUid, offerId);
   const redeemRewardWithUser = (rewardId: string) =>
     redeemReward(user, undefined, undefined, rewardId);
   const updateUserRoleWithUser = (

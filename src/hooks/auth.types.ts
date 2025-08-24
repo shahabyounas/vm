@@ -29,7 +29,9 @@ export interface Reward {
 }
 
 export interface ScanEvent {
-  scannedBy: string;
+  scannedBy: string; // Full display string: "Admin Name (admin@email.com)"
+  scannedByEmail: string; // Admin's email address
+  scannedByName: string; // Admin's name
   timestamp: Timestamp;
   stampsEarned: number; // Number of stamps earned in this scan
   scanId?: string; // Unique identifier for this scan

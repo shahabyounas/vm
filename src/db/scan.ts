@@ -119,7 +119,9 @@ export const addPurchase = async (
   // Create a single scan event with the total stamps earned
   const stampsPerScan = targetOffer.stampsPerScan || 1;
   const scanEvent = {
-    scannedBy: user?.email || "unknown",
+    scannedBy: user ? `${user.name} (${user.email})` : "Unknown Admin",
+    scannedByEmail: user?.email || "unknown",
+    scannedByName: user?.name || "Unknown",
     timestamp: Timestamp.now(),
     stampsEarned: stampsPerScan, // Total stamps earned in this single scan
     scanId: `scan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Unique scan identifier
