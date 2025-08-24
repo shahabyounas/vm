@@ -18,6 +18,7 @@ export const createDefaultOffer = async (adminUser: User): Promise<void> => {
     name: DEFAULT_OFFER_NAME,
     description: DEFAULT_OFFER_DESCRIPTION,
     stampRequirement: DEFAULT_STAMP_REQUIREMENT,
+    stampsPerScan: 1, // Default: 1 stamp per scan
     rewardType: DEFAULT_REWARD_TYPE,
     rewardValue: DEFAULT_REWARD_VALUE,
     rewardDescription: DEFAULT_REWARD_DESCRIPTION,
@@ -25,6 +26,7 @@ export const createDefaultOffer = async (adminUser: User): Promise<void> => {
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
     createdBy: adminUser.email || "system",
+    expiresAt: null, // No expiry for default offer
   };
 
   await setDoc(doc(db, "offers", "default_offer"), defaultOffer);
@@ -61,6 +63,16 @@ export const createOffer = async (adminUser: User, offerData: Omit<Offer, 'offer
     throw new Error("Only admins can create offers");
   }
 
+  // Validate required fields
+  if (!offerData.name || !offerData.description || !offerData.rewardValue || !offerData.rewardDescription) {
+    throw new Error("Missing required fields");
+  }
+
+  // Validate numeric fields
+  if (offerData.stampRequirement < 1 || offerData.stampsPerScan < 1) {
+    throw new Error("Stamp requirements must be at least 1");
+  }
+
   const offerId = `offer_${Date.now()}`;
   const newOffer: Offer = {
     ...offerData,
@@ -68,6 +80,10 @@ export const createOffer = async (adminUser: User, offerData: Omit<Offer, 'offer
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
     createdBy: adminUser.email || "system",
+    // Ensure stampsPerScan has a default value if not provided
+    stampsPerScan: offerData.stampsPerScan || 1,
+    // Handle expiresAt field properly
+    expiresAt: offerData.expiresAt || null,
   };
 
   await setDoc(doc(db, "offers", offerId), newOffer);

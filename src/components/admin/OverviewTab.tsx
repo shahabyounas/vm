@@ -126,37 +126,43 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
         <h3 className="text-xl font-bold text-white mb-4 flex items-center">
           <Clock className="w-5 h-5 mr-2 text-yellow-400" />
-          Recent User Activity
+          Business Insights
         </h3>
-        <div className="space-y-3">
-          {recentUsers.map(user => (
-            <div
-              key={user.id}
-              className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">
-                    {user.name.charAt(0)}
-                  </span>
-                </div>
-                <div>
-                  <div className="text-white font-medium">{user.name}</div>
-                  <div className="text-gray-400 text-sm">{user.email}</div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-white font-medium">
-                  {user.purchases} purchases
-                </div>
-                <div className="text-gray-400 text-sm">
-                  {user.lastScanAt
-                    ? user.lastScanAt.toDate().toLocaleDateString()
-                    : "Never"}
-                </div>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gray-700/30 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-blue-400 mb-1">
+              {totalUsers > 0
+                ? Math.round((customers.length / totalUsers) * 100)
+                : 0}
+              %
             </div>
-          ))}
+            <div className="text-blue-300 text-sm">Customer Conversion</div>
+            <div className="text-blue-400 text-xs">
+              Users to Loyalty Members
+            </div>
+          </div>
+          <div className="bg-gray-700/30 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-green-400 mb-1">
+              {customers.length > 0
+                ? Math.round((activeUsers / customers.length) * 100)
+                : 0}
+              %
+            </div>
+            <div className="text-green-300 text-sm">Customer Engagement</div>
+            <div className="text-green-400 text-xs">Active in Last 7 Days</div>
+          </div>
+          <div className="bg-gray-700/30 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-purple-400 mb-1">
+              {totalOffers > 0
+                ? Math.round((activeOffers / totalOffers) * 100)
+                : 0}
+              %
+            </div>
+            <div className="text-purple-300 text-sm">Offer Utilization</div>
+            <div className="text-purple-400 text-xs">
+              Active vs Total Offers
+            </div>
+          </div>
         </div>
       </div>
     </div>

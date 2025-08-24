@@ -8,6 +8,7 @@ interface QRData {
   userName: string;
   offerId: string;
   offerName: string;
+  stampsPerScan: number;
   timestamp: string;
   rewardId?: string;
   action?: string;

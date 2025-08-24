@@ -62,6 +62,7 @@ export interface Offer {
   name: string;
   description: string;
   stampRequirement: number;
+  stampsPerScan: number; // New field: stamps earned per scan
   rewardType: string; // e.g., "percentage", "fixed_amount", "free_item"
   rewardValue: string; // e.g., "20", "5.00", "Free Coffee"
   rewardDescription: string; // e.g., "20% OFF", "$5.00 OFF", "Free Coffee"
@@ -69,6 +70,7 @@ export interface Offer {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   createdBy: string;
+  expiresAt?: Timestamp; // New field: optional expiry date
 }
 
 export interface GlobalSettings {

@@ -16,6 +16,9 @@ import {
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { useNavigate } from "react-router-dom";
+import { fetchAllOffers } from "@/db/offers";
+import { onSnapshot, collection, query, orderBy } from "firebase/firestore";
+import { db } from "@/lib/utils";
 import {
   OverviewTab,
   UsersTab,
@@ -36,7 +39,7 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
   user,
   allUsers,
-  offers,
+  offers: initialOffers,
   onLogout,
   onScan,
 }) => {
@@ -55,7 +58,51 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     "all" | "customer" | "admin" | "super_admin"
   >("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [offers, setOffers] = useState<Offer[]>(initialOffers);
   const navigate = useNavigate();
+
+  // Initialize offers state
+  useEffect(() => {
+    setOffers(initialOffers);
+  }, [initialOffers]);
+
+  // Real-time offers listener
+  useEffect(() => {
+    if (user?.role === "admin" || user?.role === "super_admin") {
+      const offersRef = collection(db, "offers");
+      const offersQuery = query(offersRef, orderBy("createdAt", "desc"));
+
+      const unsubscribe = onSnapshot(
+        offersQuery,
+        snapshot => {
+          const updatedOffers: Offer[] = [];
+          snapshot.forEach(doc => {
+            updatedOffers.push({ ...doc.data(), offerId: doc.id } as Offer);
+          });
+          setOffers(updatedOffers);
+        },
+        error => {
+          console.error("Error listening to offers:", error);
+        }
+      );
+
+      return () => unsubscribe();
+    }
+  }, [user?.role]);
+
+  // Refresh offers list
+  const refreshOffers = async () => {
+    try {
+      const updatedOffers = await fetchAllOffers();
+      setOffers(updatedOffers);
+      console.log(
+        "Offers refreshed successfully. New offers count:",
+        updatedOffers.length
+      );
+    } catch (error) {
+      console.error("Failed to refresh offers:", error);
+    }
+  };
 
   // Filter users based on search and filters
   const filteredUsers = allUsers.filter(user => {
@@ -302,7 +349,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             />
           )}
 
-          {activeTab === "offers" && <OffersTab offers={offers} />}
+          {activeTab === "offers" && (
+            <OffersTab
+              offers={offers}
+              userRole={user.role}
+              onOfferCreated={refreshOffers}
+              currentUser={user}
+            />
+          )}
 
           {activeTab === "rewards" && <RewardsTab allUsers={allUsers} />}
 

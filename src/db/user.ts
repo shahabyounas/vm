@@ -1,5 +1,5 @@
 import { db } from "@/lib/utils";
-import { doc, updateDoc, onSnapshot, collection, query, orderBy } from "firebase/firestore";
+import { doc, updateDoc, onSnapshot, collection, query, orderBy, getDocs, Timestamp } from "firebase/firestore";
 import { User, UserRole } from "@/hooks/auth.types";
 
 export const fetchAllUsers = (onUpdate: (users: User[]) => void, onError: (err: unknown) => void) => {
@@ -14,6 +14,70 @@ export const fetchAllUsers = (onUpdate: (users: User[]) => void, onError: (err: 
         users.push({ ...userData, id: doc.id });
       });
       onUpdate(users);
+    },
+    onError
+  );
+};
+
+export const fetchAllUsersWithRewards = (onUpdate: (users: User[]) => void, onError: (err: unknown) => void) => {
+  const usersRef = collection(db, "users");
+  const usersQuery = query(usersRef, orderBy("createdAt", "desc"));
+  
+  return onSnapshot(
+    usersQuery,
+    async (snapshot) => {
+      try {
+        const users: User[] = [];
+        
+        // Process each user to get complete data
+        for (const docSnap of snapshot.docs) {
+          const userData = docSnap.data() as User;
+          const userId = docSnap.id;
+          
+          // Get user's rewards subcollection
+          const rewardsRef = collection(db, "users", userId, "rewards");
+          const rewardsSnapshot = await getDocs(rewardsRef);
+          
+          const rewards: User["completedRewards"] = [];
+          rewardsSnapshot.forEach((rewardDoc) => {
+            const rewardData = rewardDoc.data();
+            // Ensure all required fields are present, using defaults if missing
+            const reward: User["completedRewards"][0] = {
+              rewardId: rewardDoc.id,
+              claimedAt: rewardData.claimedAt || null,
+              scanHistory: rewardData.scanHistory || [],
+              rewardType: rewardData.rewardType || "",
+              rewardValue: rewardData.rewardValue || "",
+              rewardDescription: rewardData.rewardDescription || "",
+              offerSnapshot: rewardData.offerSnapshot || {
+                offerId: "",
+                offerName: "",
+                description: "",
+                stampRequirement: 0,
+                rewardType: "",
+                rewardValue: "",
+                rewardDescription: "",
+              },
+              createdAt: rewardData.createdAt || (new Date() as unknown as Timestamp),
+              expiresAt: rewardData.expiresAt,
+            };
+            rewards.push(reward);
+          });
+          
+          // Create complete user object with rewards
+          const completeUser: User = {
+            ...userData,
+            id: userId,
+            completedRewards: rewards,
+          };
+          
+          users.push(completeUser);
+        }
+        
+        onUpdate(users);
+      } catch (error) {
+        onError(error);
+      }
     },
     onError
   );

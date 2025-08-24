@@ -21,6 +21,15 @@ const Scan = () => {
   const [verified, setVerified] = useState<null | boolean>(null);
   const [scannedUser, setScannedUser] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [scannedQRData, setScannedQRData] = useState<{
+    userEmail: string;
+    userId: string;
+    offerId: string;
+    offerName: string;
+    stampsPerScan: number;
+    action?: string;
+    rewardId?: string;
+  } | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { addPurchase } = useAuth();
@@ -113,6 +122,7 @@ const Scan = () => {
 
       setScannedUser(qrData.userEmail);
       setVerified(true);
+      setScannedQRData(qrData);
 
       // Get updated user data to show current purchase count
       const updatedUserSnap = await getDoc(userRef);
@@ -131,8 +141,17 @@ const Scan = () => {
           });
         } else {
           // Stamp collection
-          successMessage = `Stamp added for ${qrData.offerName || "loyalty program"}!`;
-          successMessage += ` Total purchases: ${purchaseCount}`;
+          const stampsEarned = qrData.stampsPerScan || 1;
+          const stampText = stampsEarned === 1 ? "stamp" : "stamps";
+          successMessage = `${stampsEarned} ${stampText} added for ${qrData.offerName || "loyalty program"}!`;
+
+          // Get updated user data to show current purchase count
+          const updatedUserSnap = await getDoc(userRef);
+          if (updatedUserSnap.exists()) {
+            const updatedUserData = updatedUserSnap.data();
+            const purchaseCount = updatedUserData.purchases || 0;
+            successMessage += ` Total stamps: ${purchaseCount}`;
+          }
 
           if (qrData.offerId && qrData.offerId !== "default_offer") {
             // Check if user has completed this specific offer
@@ -212,6 +231,7 @@ const Scan = () => {
     setVerified(null);
     setScannedUser(null);
     setIsProcessing(false);
+    setScannedQRData(null);
   };
 
   return (
@@ -273,13 +293,17 @@ const Scan = () => {
                       </span>
                       <span className="text-green-300">
                         {" "}
-                        has earned a stamp!
+                        has earned {scannedQRData?.stampsPerScan || 1}{" "}
+                        {scannedQRData?.stampsPerScan === 1
+                          ? "stamp"
+                          : "stamps"}
+                        !
                       </span>
                     </div>
                   )}
-                  {location.state?.qrData?.offerName && (
+                  {scannedQRData?.offerName && (
                     <div className="text-sm text-green-400 bg-green-900/30 px-3 py-1 rounded-full inline-block mb-2">
-                      Offer: {location.state.qrData.offerName}
+                      Offer: {scannedQRData.offerName}
                     </div>
                   )}
                 </div>

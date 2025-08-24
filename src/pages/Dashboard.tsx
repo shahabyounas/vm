@@ -10,6 +10,7 @@ interface QRData {
   userName: string;
   offerId: string;
   offerName: string;
+  stampsPerScan: number;
   timestamp: string;
 }
 import RewardsHistory from "./RewardsHistory";
@@ -234,6 +235,7 @@ const Dashboard = () => {
                                       userName: user.name,
                                       offerId: offer.offerId,
                                       offerName: offer.name,
+                                      stampsPerScan: offer.stampsPerScan || 1,
                                       timestamp: new Date().toISOString(),
                                     };
 
@@ -255,6 +257,7 @@ const Dashboard = () => {
                                       userName: user.name,
                                       offerId: offer.offerId,
                                       offerName: offer.name,
+                                      stampsPerScan: offer.stampsPerScan || 1,
                                       timestamp: new Date().toISOString(),
                                     };
 

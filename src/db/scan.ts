@@ -113,12 +113,13 @@ export const addPurchase = async (
     };
   }
   
-  const newProgress = currentProgress + 1;
+  const newProgress = currentProgress + (targetOffer.stampsPerScan || 1);
   const isCompleted = newProgress >= stampRequirement;
   
   const scanEvent = {
     scannedBy: user?.email || "unknown",
     timestamp: Timestamp.now(),
+    stampsEarned: targetOffer.stampsPerScan || 1, // Track how many stamps were earned in this scan
   };
 
   // Update the reward with new scan
@@ -140,8 +141,12 @@ export const addPurchase = async (
     updatedCompletedRewards = [...updatedCompletedRewards, updatedReward];
   }
 
+  // Calculate total stamps earned from this scan
+  const stampsEarned = targetOffer.stampsPerScan || 1;
+
   await updateDoc(userRef, {
     lastScanAt: Timestamp.now(),
     completedRewards: updatedCompletedRewards,
+    purchases: increment(stampsEarned), // Increment by actual stamps earned, not just 1
   });
 }; 
