@@ -27,8 +27,10 @@ export const subscribeToAuthState = auth.subscribeToAuthState;
 
 // User
 export const fetchAllUsers = user.fetchAllUsers;
+export const fetchAllUsersWithRewards = user.fetchAllUsersWithRewards;
 export const fetchUserRealtime = user.fetchUserRealtime;
 export const updateUserRole = withErrorHandling(user.updateUserRole, 'updateUserRole');
+export const checkUserExistsByEmail = withErrorHandling(user.checkUserExistsByEmail, 'checkUserExistsByEmail');
 
 // Scan
 export const addPurchase = withErrorHandling(scan.addPurchase, 'addPurchase');

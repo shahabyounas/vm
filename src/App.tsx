@@ -10,6 +10,8 @@ import PublicRoute from "./components/PublicRoute";
 import HomeRoute from "./components/HomeRoute";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Rewards from "./pages/Rewards";
 import Settings from "./pages/Settings";
@@ -43,6 +45,22 @@ const App = () => (
               element={
                 <PublicRoute>
                   <Login />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicRoute>
+                  <ForgotPassword />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <PublicRoute>
+                  <ResetPassword />
                 </PublicRoute>
               }
             />
