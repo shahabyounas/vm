@@ -1,0 +1,52 @@
+{
+  "name": "VM",
+  "short_name": "VM",
+  "description": "Earn rewards and scan QR codes with the Vaporwave Loyalty Club app!",
+  "start_url": ".",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#111827",
+  "theme_color": "#ef4444",
+  "categories": ["business", "lifestyle", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Scan QR Code",
+      "short_name": "Scan",
+      "description": "Quickly scan a QR code",
+      "url": "/scan",
+      "icons": [
+        {
+          "src": "/favicon.png",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "View Rewards",
+      "short_name": "Rewards",
+      "description": "Check your rewards",
+      "url": "/rewards",
+      "icons": [
+        {
+          "src": "/favicon.png",
+          "sizes": "any"
+        }
+      ]
+    }
+  ]
+} 
