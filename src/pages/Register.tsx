@@ -30,6 +30,7 @@ const Register = () => {
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string[]>
   >({});
+  const [formError, setFormError] = useState(""); // New: form-level error
   const [lastSubmissionTime, setLastSubmissionTime] = useState(0);
 
   // Honeypot fields (hidden from users but visible to bots)
@@ -50,6 +51,13 @@ const Register = () => {
       userAgent: navigator.userAgent,
     });
   }, []);
+
+  // Clear form error when user starts typing
+  useEffect(() => {
+    if (formError) {
+      setFormError("");
+    }
+  }, [name, email, contactNumber, password, confirmPassword]);
 
   // Real-time validation
   useEffect(() => {
@@ -118,6 +126,7 @@ const Register = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(""); // Clear any previous form errors
 
     const now = Date.now();
     const clientId = getClientIdentifier();
@@ -130,11 +139,7 @@ const Register = () => {
         clientId,
       });
 
-      toast({
-        title: "Registration Blocked",
-        description: "Suspicious activity detected. Please try again later.",
-        variant: "destructive",
-      });
+      setFormError("Suspicious activity detected. Please try again later.");
       return;
     }
 
@@ -145,11 +150,9 @@ const Register = () => {
         timeSinceLastRequest: now - lastSubmissionTime,
       });
 
-      toast({
-        title: "Too Many Requests",
-        description: "Please wait a few seconds before trying again.",
-        variant: "destructive",
-      });
+      setFormError(
+        "Too many requests. Please wait a few seconds before trying again."
+      );
       return;
     }
 
@@ -160,12 +163,9 @@ const Register = () => {
         timeSinceLastRequest: now - lastSubmissionTime,
       });
 
-      toast({
-        title: "Registration Limit Reached",
-        description:
-          "Too many registration attempts from this location. Please try again later.",
-        variant: "destructive",
-      });
+      setFormError(
+        "Too many registration attempts from this location. Please try again later."
+      );
       return;
     }
 
@@ -178,11 +178,7 @@ const Register = () => {
         clientId,
       });
 
-      toast({
-        title: "Email Already Used",
-        description: "This email address has already been registered.",
-        variant: "destructive",
-      });
+      setFormError("This email address has already been registered.");
       return;
     }
 
@@ -215,11 +211,7 @@ const Register = () => {
         errors: allErrors,
       });
 
-      toast({
-        title: "Validation Errors",
-        description: "Please fix the errors in the form.",
-        variant: "destructive",
-      });
+      setFormError("Please fix the errors in the form.");
       return;
     }
 
@@ -263,30 +255,51 @@ const Register = () => {
 
       navigate("/dashboard");
     } catch (error: unknown) {
-      let message = "Please try again.";
+      let message = "Unable to create account. Please try again.";
+
       if (
         error &&
         typeof error === "object" &&
         "message" in error &&
         typeof (error as { message?: unknown }).message === "string"
       ) {
-        message = (error as { message: string }).message;
+        const errorMessage = (error as { message: string }).message;
+
+        // Provide user-friendly error messages
+        if (errorMessage.includes("email-already-in-use")) {
+          message =
+            "This email address is already registered. Please use a different email or try signing in.";
+        } else if (errorMessage.includes("weak-password")) {
+          message = "Password is too weak. Please choose a stronger password.";
+        } else if (errorMessage.includes("invalid-email")) {
+          message = "Please enter a valid email address.";
+        } else if (errorMessage.includes("network")) {
+          message =
+            "Connection error. Please check your internet connection and try again.";
+        } else if (errorMessage.includes("timeout")) {
+          message = "Request timed out. Please try again.";
+        } else if (errorMessage.includes("too-many-requests")) {
+          message =
+            "Too many registration attempts. Please wait a few minutes and try again.";
+        } else {
+          // Generic user-friendly message for any other technical errors
+          message =
+            "Unable to create account. Please check your information and try again.";
+        }
       }
 
       // Security: Log failed registration
       logSecurityEvent("registration_failed", {
         email: normalizedEmail,
         clientId,
-        error: message,
+        error: (error as { message: string }).message,
       });
 
-      toast({
-        title: "Registration Failed",
-        description: message,
-        variant: "destructive",
+      setFormError(message);
+      trackEvent("register_failed", {
+        email: normalizedEmail,
+        error: (error as { message: string }).message,
       });
-
-      trackEvent("register_failed", { email: normalizedEmail, error: message });
     } finally {
       setIsLoading(false);
     }
@@ -328,6 +341,13 @@ const Register = () => {
               </div>
 
               <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+                {/* Form Error Display */}
+                {formError && (
+                  <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
+                    <p className="text-red-300 text-sm">{formError}</p>
+                  </div>
+                )}
+
                 {/* Honeypot fields - hidden from users but visible to bots */}
                 <div className="hidden">
                   <input
@@ -359,7 +379,9 @@ const Register = () => {
                     onChange={e => setName(e.target.value)}
                     placeholder="Enter your full name"
                     className={`bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 ${
-                      validationErrors.name?.length ? "border-red-500" : ""
+                      validationErrors.name?.length || formError
+                        ? "border-red-500"
+                        : ""
                     }`}
                     required
                     autoComplete="name"
@@ -387,7 +409,9 @@ const Register = () => {
                     onChange={e => setEmail(e.target.value)}
                     placeholder="Enter your email"
                     className={`bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 ${
-                      validationErrors.email?.length ? "border-red-500" : ""
+                      validationErrors.email?.length || formError
+                        ? "border-red-500"
+                        : ""
                     }`}
                     required
                     autoComplete="email"
@@ -416,7 +440,7 @@ const Register = () => {
                       onChange={e => setPassword(e.target.value)}
                       placeholder="Create a strong password"
                       className={`bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 pr-10 ${
-                        validationErrors.password?.length
+                        validationErrors.password?.length || formError
                           ? "border-red-500"
                           : ""
                       }`}
@@ -459,7 +483,7 @@ const Register = () => {
                       onChange={e => setConfirmPassword(e.target.value)}
                       placeholder="Confirm your password"
                       className={`bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 pr-10 ${
-                        validationErrors.confirmPassword?.length
+                        validationErrors.confirmPassword?.length || formError
                           ? "border-red-500"
                           : ""
                       }`}
@@ -503,7 +527,7 @@ const Register = () => {
                     onChange={e => setContactNumber(e.target.value)}
                     placeholder="Enter your contact number"
                     className={`bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 ${
-                      validationErrors.contactNumber?.length
+                      validationErrors.contactNumber?.length || formError
                         ? "border-red-500"
                         : ""
                     }`}

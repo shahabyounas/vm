@@ -5,13 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const { login, user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,20 +22,26 @@ const Login = () => {
     trackEvent("page_view", { page: "Login" });
   }, []);
 
+  // Clear error when user starts typing
+  useEffect(() => {
+    if (error) {
+      setError("");
+    }
+  }, [email, password]);
+
   // PublicRoute component handles redirects for authenticated users
   // No need for manual redirect logic here
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(""); // Clear any previous errors
+
     if (!email.trim() || !password.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please enter your email and password.",
-        variant: "destructive",
-      });
+      setError("Please enter your email and password.");
       trackEvent("login_missing_info");
       return;
     }
+
     setIsLoading(true);
     try {
       trackEvent("login_attempt", { email });
@@ -48,30 +56,52 @@ const Login = () => {
         const from = location.state?.from?.pathname || "/dashboard";
         navigate(from, { replace: true });
       } else {
-        toast({
-          title: "User Not Found",
-          description:
-            "No account found with this email. Please register first.",
-          variant: "destructive",
-        });
+        setError("No account found with this email. Please register first.");
         trackEvent("login_user_not_found", { email });
       }
     } catch (error: unknown) {
-      let message = "Please try again.";
+      let message = "Email or password is incorrect. Please try again.";
+
       if (
         error &&
         typeof error === "object" &&
         "message" in error &&
         typeof (error as { message?: unknown }).message === "string"
       ) {
-        message = (error as { message: string }).message;
+        const errorMessage = (error as { message: string }).message;
+
+        // Provide user-friendly error messages
+        if (errorMessage.includes("user-not-found")) {
+          message =
+            "No account found with this email. Please check your email or create a new account.";
+        } else if (errorMessage.includes("wrong-password")) {
+          message =
+            "Incorrect email or password. Please check your credentials and try again.";
+        } else if (errorMessage.includes("invalid-email")) {
+          message = "Please enter a valid email address.";
+        } else if (errorMessage.includes("too-many-requests")) {
+          message =
+            "Too many login attempts. Please wait a few minutes and try again.";
+        } else if (errorMessage.includes("user-disabled")) {
+          message =
+            "This account is temporarily unavailable. Please contact customer support.";
+        } else if (errorMessage.includes("network")) {
+          message =
+            "Connection error. Please check your internet connection and try again.";
+        } else if (errorMessage.includes("timeout")) {
+          message = "Request timed out. Please try again.";
+        } else {
+          // Generic user-friendly message for any other technical errors
+          message =
+            "Unable to sign in. Please check your email and password, then try again.";
+        }
       }
-      toast({
-        title: "Login Failed",
-        description: message,
-        variant: "destructive",
-      });
-      trackEvent("login_failed", { email, error: message });
+
+      setError(message);
+      trackEvent("login_failed", {
+        email,
+        error: (error as { message: string }).message,
+      }); // Keep technical error for analytics
     } finally {
       setIsLoading(false);
     }
@@ -108,6 +138,13 @@ const Login = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Error Display */}
+                {error && (
+                  <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
+                    <p className="text-red-300 text-sm">{error}</p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-white">
                     Email
@@ -116,9 +153,11 @@ const Login = () => {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                     placeholder="Enter your email"
-                    className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-red-500"
+                    className={`bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 ${
+                      error ? "border-red-500" : ""
+                    }`}
                     required
                   />
                 </div>
@@ -127,15 +166,31 @@ const Login = () => {
                   <Label htmlFor="password" className="text-white">
                     Password
                   </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-red-500"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className={`bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 pr-12 ${
+                        error ? "border-red-500" : ""
+                      }`}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <Button
