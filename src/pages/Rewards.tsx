@@ -1,242 +1,417 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import QRCode from "@/components/QRCode";
-import { ArrowLeft } from "lucide-react";
-import Confetti from "react-confetti";
-
-// Add Tailwind keyframes for glowing ring animation
-const ringAnimation = `
-@keyframes ringPulse {
-  0% { transform: scale(1); opacity: 0.7; }
-  70% { transform: scale(2.5); opacity: 0.2; }
-  100% { transform: scale(3); opacity: 0; }
-}
-`;
+import { ArrowLeft, Gift, CheckCircle, Clock, Star } from "lucide-react";
+import { Reward } from "@/hooks/auth.types";
+import { trackEvent } from "@/lib/analytics";
 
 const Rewards = () => {
-  const { user, useReward } = useAuth();
+  const { user, loading, redeemReward } = useAuth();
   const navigate = useNavigate();
-  const [redeemed, setRedeemed] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [showRings, setShowRings] = useState(false);
-  const [timer, setTimer] = useState(30);
-  const [expired, setExpired] = useState(false);
-  const [celebrate, setCelebrate] = useState(false);
-  const [confettiBurst, setConfettiBurst] = useState(true);
-  const confettiInterval = useRef<NodeJS.Timeout | null>(null);
+  const [redeemingReward, setRedeemingReward] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
+    trackEvent("page_view", { page: "Rewards" });
+  }, []);
+
+  useEffect(() => {
+    if (!loading && !user) {
       navigate("/login");
-    } else if (!user.isRewardReady) {
-      navigate("/dashboard");
-    } else {
-      setCelebrate(true);
-      setTimeout(() => setCelebrate(false), 3000);
-      // Start confetti bursts at intervals
-      confettiInterval.current = setInterval(() => {
-        setConfettiBurst(false);
-        setTimeout(() => setConfettiBurst(true), 100);
-      }, 3500);
     }
-    return () => {
-      if (confettiInterval.current) clearInterval(confettiInterval.current);
-    };
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
-  // Countdown timer effect
-  useEffect(() => {
-    if (!user || redeemed || expired) return;
-    if (user.isRewardReady && timer > 0) {
-      const interval = setInterval(() => {
-        setTimer(t => t - 1);
-      }, 1000);
-      return () => clearInterval(interval);
-    } else if (timer === 0 && user.isRewardReady) {
-      setExpired(true);
-      setTimeout(() => {
-        // Call useReward function from context
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        useReward();
-        navigate("/dashboard");
-      }, 2000);
-    }
-  }, [user, timer, redeemed, expired, useReward, navigate]);
-
-  // Only show rings for 2.5s after scan/mark as used
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (showRings) {
-      timer = setTimeout(() => setShowRings(false), 2500);
-    }
-    return () => clearTimeout(timer);
-  }, [showRings]);
-
-  // Only show confetti for 2.5s after scan/mark as used
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (showConfetti) {
-      timer = setTimeout(() => setShowConfetti(false), 2500);
-    }
-    return () => clearTimeout(timer);
-  }, [showConfetti]);
-
-  if (!user || !user.isRewardReady) return null;
-
-  if (expired) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-red-950">
-        <div className="bg-gradient-to-r from-red-700/80 to-black/80 rounded-2xl p-10 shadow-2xl text-center">
-          <div className="text-6xl mb-4">⏰</div>
-          <h2 className="text-3xl font-bold text-white mb-2">Reward expired</h2>
-          <p className="text-red-200 text-lg">Start collecting again.</p>
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading...</p>
         </div>
       </div>
     );
   }
 
-  const handleUseReward = () => {
-    setShowRings(true);
-    setShowConfetti(true);
-    setTimeout(() => {
-      setRedeemed(true);
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      useReward();
-    }, 2500); // Wait for animation before showing redeemed
+  if (!user) return null;
+
+  const handleRedeemReward = async (rewardId: string) => {
+    setRedeemingReward(rewardId);
+
+    try {
+      await redeemReward(rewardId);
+
+      toast({
+        title: "Reward Redeemed!",
+        description: "Your reward has been successfully redeemed.",
+      });
+
+      trackEvent("reward_redeemed", { reward_id: rewardId, user_id: user.id });
+
+      // Refresh the page or update the reward status
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to redeem reward. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRedeemingReward(null);
+    }
   };
 
-  if (redeemed) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950 flex flex-col items-center justify-center relative overflow-hidden">
-        {showConfetti && (
-          <Confetti
-            width={window.innerWidth}
-            height={window.innerHeight}
-            numberOfPieces={400}
-            recycle={false}
-          />
-        )}
-        <div className="bg-gradient-to-r from-green-600/80 to-green-400/80 backdrop-blur-sm border border-green-900/30 rounded-2xl p-10 shadow-2xl text-center">
-          <div className="text-6xl mb-4">🥳</div>
-          <h2 className="text-3xl font-bold text-white mb-2">
-            Reward Redeemed!
-          </h2>
-          <p className="text-green-200 text-lg">Your reward has been used.</p>
-          <p className="text-white/80 mt-2">
-            Your scan count has been reset. Start earning your next reward!
-          </p>
-          <button
-            className="mt-8 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg shadow-lg hover:from-red-700 hover:to-red-800 transition-all duration-300"
-            onClick={() => navigate("/dashboard")}
-          >
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const getRewardIcon = (rewardType: string) => {
+    switch (rewardType) {
+      case "percentage":
+        return "💯";
+      case "fixed_amount":
+        return "💰";
+      case "free_item":
+        return "🎁";
+      default:
+        return "🎉";
+    }
+  };
+
+  const getRewardColor = (rewardType: string) => {
+    switch (rewardType) {
+      case "percentage":
+        return "from-purple-600 to-purple-700";
+      case "fixed_amount":
+        return "from-green-600 to-green-700";
+      case "free_item":
+        return "from-blue-600 to-blue-700";
+      default:
+        return "from-red-600 to-red-700";
+    }
+  };
+
+  const availableRewards =
+    user.completedRewards?.filter(r => !r.claimedAt) || [];
+  const claimedRewards = user.completedRewards?.filter(r => r.claimedAt) || [];
+  const currentProgress = user.currentReward;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-black via-red-900 to-orange-900 animate-shimmer">
-      {/* Keyframes for fire, shimmer, and lightning */}
-      <style>{`
-        @keyframes shimmer {
-          0% { background-position: 0% 50%; }
-          100% { background-position: 100% 50%; }
-        }
-        .animate-shimmer {
-          background-size: 200% 200%;
-          animation: shimmer 8s linear infinite;
-        }
-        @keyframes fire {
-          0% { transform: scaleY(1) translateY(0); opacity: 1; }
-          50% { transform: scaleY(1.1) translateY(-10px); opacity: 0.85; }
-          100% { transform: scaleY(1) translateY(0); opacity: 1; }
-        }
-        .fire-flame {
-          animation: fire 1.2s infinite alternate cubic-bezier(0.4,0,0.2,1);
-        }
-        @keyframes lightning {
-          0%, 97%, 100% { opacity: 0; }
-          98% { opacity: 1; }
-          99% { opacity: 0.5; }
-        }
-        .lightning {
-          animation: lightning 4s infinite;
-        }
-      `}</style>
-      {/* Confetti burst at intervals */}
-      {confettiBurst && (
-        <Confetti
-          width={window.innerWidth}
-          height={window.innerHeight}
-          numberOfPieces={180}
-          recycle={false}
-          colors={["#ef4444", "#fff", "#facc15", "#ff9800", "#a3e635"]}
-          style={{ position: "fixed", left: 0, top: 0, zIndex: 40 }}
-        />
-      )}
-      {/* Lightning flashes */}
-      <div className="pointer-events-none">
-        <div
-          className="absolute top-0 left-0 w-24 h-24 lightning"
-          style={{ boxShadow: "0 0 60px 20px #fff8" }}
-        />
-        <div
-          className="absolute top-0 right-0 w-24 h-24 lightning"
-          style={{ boxShadow: "0 0 60px 20px #fff8" }}
-        />
-        <div
-          className="absolute bottom-0 left-0 w-24 h-24 lightning"
-          style={{ boxShadow: "0 0 60px 20px #fff8" }}
-        />
-        <div
-          className="absolute bottom-0 right-0 w-24 h-24 lightning"
-          style={{ boxShadow: "0 0 60px 20px #fff8" }}
-        />
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-950">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-red-900/80 to-black/80 backdrop-blur-sm border-b border-red-800/50">
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/dashboard")}
+                className="text-red-300 hover:text-white hover:bg-red-900/30"
+              >
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                Back
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-white">My Rewards</h1>
+                <p className="text-red-300 text-sm">
+                  Manage and redeem your earned rewards
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-white text-sm">Total Rewards</div>
+              <div className="text-2xl font-bold text-red-400">
+                {user.completedRewards?.length || 0}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      {/* Fire animation at the bottom */}
-      <div className="absolute bottom-0 left-0 w-full flex justify-center items-end z-30 pointer-events-none">
-        {[...Array(12)].map((_, i) => (
-          <div
-            key={i}
-            className="fire-flame"
-            style={{
-              width: `${16 + Math.random() * 16}px`,
-              height: `${40 + Math.random() * 32}px`,
-              marginLeft: 4,
-              marginRight: 4,
-              borderRadius: "50% 50% 40% 40%",
-              background: `radial-gradient(circle at 50% 30%, #ff9800 60%, #ef4444 100%)`,
-              opacity: 0.7 + Math.random() * 0.3,
-              filter: "blur(1.5px)",
-              animationDelay: `${Math.random()}s`,
-            }}
-          />
-        ))}
-      </div>
-      {/* Reward message */}
-      <div className="relative z-20 bg-gradient-to-r from-red-700/80 to-black/80 rounded-2xl p-10 shadow-2xl text-center animate-bounceIn">
-        <div className="text-6xl mb-4 animate-bounce">🎉</div>
-        <h2 className="text-3xl font-extrabold text-white mb-2 animate-pulse drop-shadow-[0_0_16px_#ff9800]">
-          You Got 20% OFF! 🎉
-        </h2>
-        <p className="text-red-200 text-lg mb-6 animate-fadeIn">
-          Show this at checkout to redeem your reward.
-        </p>
-        <button
-          className="mt-8 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg shadow-lg hover:from-red-700 hover:to-red-800 transition-all duration-300"
-          onClick={() => {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            useReward();
-            navigate("/dashboard");
-          }}
-        >
-          Back to Dashboard
-        </button>
+
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        {/* Current Progress - In-Progress Rewards */}
+        {user.completedRewards &&
+          user.completedRewards.filter(r => {
+            const totalStampsEarned =
+              r.scanHistory?.reduce(
+                (total, scan) => total + (scan.stampsEarned || 1),
+                0
+              ) || 0;
+            return totalStampsEarned < (r.offerSnapshot?.stampRequirement || 0);
+          }).length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+                <Clock className="w-5 h-5 mr-2 text-yellow-400" />
+                Rewards in Progress
+              </h2>
+
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {user.completedRewards
+                  .filter(reward => {
+                    const totalStampsEarned =
+                      reward.scanHistory?.reduce(
+                        (total, scan) => total + (scan.stampsEarned || 1),
+                        0
+                      ) || 0;
+                    return (
+                      totalStampsEarned <
+                      (reward.offerSnapshot?.stampRequirement || 0)
+                    );
+                  })
+                  .map(reward => {
+                    const totalStampsEarned =
+                      reward.scanHistory?.reduce(
+                        (total, scan) => total + (scan.stampsEarned || 1),
+                        0
+                      ) || 0;
+                    const required =
+                      reward.offerSnapshot?.stampRequirement || 0;
+                    const progressPercentage =
+                      required > 0
+                        ? Math.min((totalStampsEarned / required) * 100, 100)
+                        : 0;
+
+                    return (
+                      <div
+                        key={reward.rewardId}
+                        className="bg-gradient-to-br from-gray-900/90 to-blue-900/90 border border-blue-800/50 rounded-xl p-6 hover:border-blue-600/70 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20"
+                      >
+                        <div className="text-center mb-4">
+                          <div className="text-4xl mb-2">🎯</div>
+                          <div className="text-xl font-bold text-white mb-1">
+                            {reward.offerSnapshot?.offerName ||
+                              "Loyalty Reward"}
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            {reward.rewardDescription}
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="mb-4">
+                          <div className="flex justify-between text-sm mb-2">
+                            <span className="text-gray-400">Progress:</span>
+                            <span className="text-white font-medium">
+                              {totalStampsEarned} / {required} stamps
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-700 rounded-full h-3">
+                            <div
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+                              style={{ width: `${progressPercentage}%` }}
+                            ></div>
+                          </div>
+                          <div className="text-center mt-2">
+                            <div className="text-blue-300 text-xs">
+                              {required - totalStampsEarned > 0
+                                ? `${required - totalStampsEarned} more stamps needed`
+                                : "🎉 Ready to complete!"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 mb-4">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-400">Type:</span>
+                            <span className="text-white capitalize">
+                              {reward.rewardType}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-400">Value:</span>
+                            <span className="text-white">
+                              {reward.rewardValue}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-400">Started:</span>
+                            <span className="text-white">
+                              {reward.createdAt.toDate().toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
+        {/* Available Rewards */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+            <Gift className="w-5 h-5 mr-2 text-green-400" />
+            Available Rewards ({availableRewards.length})
+          </h2>
+
+          {availableRewards.length === 0 ? (
+            <div className="text-center py-12 bg-gradient-to-r from-gray-900/50 to-red-900/50 border border-gray-700/50 rounded-xl">
+              <div className="text-6xl mb-4">🎯</div>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                No Available Rewards
+              </h3>
+              <p className="text-gray-400 mb-4">
+                Complete your purchase goal to earn your first reward!
+              </p>
+              <Button
+                onClick={() => navigate("/dashboard")}
+                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+              >
+                Go to Dashboard
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {availableRewards.map(reward => (
+                <div
+                  key={reward.rewardId}
+                  className="bg-gradient-to-br from-gray-900/90 to-red-900/90 border border-red-800/50 rounded-xl p-6 hover:border-red-600/70 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/20"
+                >
+                  <div className="text-center mb-4">
+                    <div className="text-4xl mb-2">
+                      {getRewardIcon(reward.rewardType)}
+                    </div>
+                    <div className="text-xl font-bold text-white mb-1">
+                      {reward.rewardDescription}
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      Earned on {reward.createdAt.toDate().toLocaleDateString()}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mb-6">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Type:</span>
+                      <span className="text-white capitalize">
+                        {reward.rewardType}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Value:</span>
+                      <span className="text-white">{reward.rewardValue}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Goal:</span>
+                      <span className="text-white">
+                        {reward.offerSnapshot?.stampRequirement || 0} stamps
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => handleRedeemReward(reward.rewardId)}
+                    disabled={redeemingReward === reward.rewardId}
+                    className={`w-full bg-gradient-to-r ${getRewardColor(reward.rewardType)} hover:opacity-90 transition-all duration-300`}
+                  >
+                    {redeemingReward === reward.rewardId ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    ) : (
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                    )}
+                    Redeem Reward
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Claimed Rewards */}
+        {claimedRewards.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-green-400" />
+              Claimed Rewards ({claimedRewards.length})
+            </h2>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {claimedRewards.map(reward => (
+                <div
+                  key={reward.rewardId}
+                  className="bg-gradient-to-br from-gray-800/90 to-gray-900/90 border border-gray-700/50 rounded-xl p-6 opacity-75"
+                >
+                  <div className="text-center mb-4">
+                    <div className="text-4xl mb-2">
+                      {getRewardIcon(reward.rewardType)}
+                    </div>
+                    <div className="text-xl font-bold text-gray-300 mb-1">
+                      {reward.rewardDescription}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Claimed on{" "}
+                      {reward.claimedAt?.toDate().toLocaleDateString()}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mb-6">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Type:</span>
+                      <span className="text-gray-300 capitalize">
+                        {reward.rewardType}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Value:</span>
+                      <span className="text-gray-300">
+                        {reward.rewardValue}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Goal:</span>
+                      <span className="text-gray-300">
+                        {reward.offerSnapshot?.stampRequirement || 0} stamps
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="inline-flex items-center px-3 py-1 bg-green-900/50 border border-green-600/50 rounded-full">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-400" />
+                      <span className="text-green-300 text-sm font-medium">
+                        REDEEMED
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Reward History Stats */}
+        <div className="bg-gradient-to-r from-gray-900/90 to-red-900/90 border border-red-800/50 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <Star className="w-5 h-5 mr-2 text-yellow-400" />
+            Reward Statistics
+          </h3>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-white">
+                {user.completedRewards?.length || 0}
+              </div>
+              <div className="text-sm text-gray-400">Total Earned</div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-400">
+                {claimedRewards.length}
+              </div>
+              <div className="text-sm text-gray-400">Redeemed</div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-400">
+                {availableRewards.length}
+              </div>
+              <div className="text-sm text-gray-400">Available</div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-400">
+                {user.purchases}
+              </div>
+              <div className="text-sm text-gray-400">Current Progress</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

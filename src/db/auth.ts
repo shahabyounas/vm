@@ -63,14 +63,13 @@ export const registerUser = async (
   name: string,
   email: string,
   password: string,
-  feedback: string | undefined,
+  mobileNumber: string | undefined,
   settings: GlobalSettings | null
 ): Promise<User> => {
   try {
 
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     
-    const currentPurchaseLimit = settings?.purchaseLimit || 5;
     const sessionToken = generateSessionToken();
     const now = Timestamp.now();
     
@@ -78,13 +77,15 @@ export const registerUser = async (
       id: cred.user.uid,
       name,
       email,
-      feedback,
+      mobileNumber,
       purchases: 0,
       isRewardReady: false,
       createdAt: now,
       rewards: [],
-      purchaseLimit: currentPurchaseLimit,
       role: "customer",
+      // Current active offer (will be assigned after creation)
+      currentOfferId: "default_offer", // Default offer ID
+      currentOfferProgress: 0,
       // Session management
       sessionToken,
       lastLoginAt: now,

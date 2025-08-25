@@ -11,4 +11,12 @@ export const SIDEBAR_WIDTH_ICON = "3rem";
 export const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
 // Default purchase limit (used in settings, rewards, etc.)
-export const DEFAULT_PURCHASE_LIMIT = 5; 
+export const DEFAULT_PURCHASE_LIMIT = 5;
+
+// Default offer settings
+export const DEFAULT_OFFER_NAME = "Welcome Offer";
+export const DEFAULT_OFFER_DESCRIPTION = "Complete purchases to unlock your reward!";
+export const DEFAULT_STAMP_REQUIREMENT = 5;
+export const DEFAULT_REWARD_TYPE = "percentage";
+export const DEFAULT_REWARD_VALUE = "20";
+export const DEFAULT_REWARD_DESCRIPTION = "20% OFF"; 

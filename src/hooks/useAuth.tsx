@@ -9,7 +9,7 @@ import {
   fetchUserRealtime,
   updateUserRole,
   addPurchase,
-  useReward,
+  redeemReward,
   fetchGlobalSettings,
   updateSettings,
 } from "@/db/adapter";
@@ -27,11 +27,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Fetch global settings
   useEffect(() => {
     const unsubscribeSettings = fetchGlobalSettings(
-      (settingsData) => {
+      settingsData => {
         setSettings(settingsData);
         setSettingsLoading(false);
       },
-      (error) => {
+      error => {
         console.error("Error listening to settings:", error);
         setSettingsLoading(false);
       }
@@ -47,11 +47,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     setAllUsersLoading(true);
     const unsubscribeUsers = fetchAllUsers(
-      (users) => {
+      users => {
         setAllUsers(users);
         setAllUsersLoading(false);
       },
-      (error) => {
+      error => {
         console.error("Error listening to all users:", error);
         setAllUsersLoading(false);
       }
@@ -84,7 +84,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             unsubscribeSnapshot = fetchUserRealtime(
               // @ts-expect-error: firebaseUser is from Firebase Auth
               firebaseUser.uid,
-              (userData) => {
+              userData => {
                 console.log("Real-time user data received:", {
                   uid: userData.id,
                   isSessionValid: userData.isSessionValid,
@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                   setLoading(false);
                 }
               },
-              (error) => {
+              error => {
                 console.error("Error listening to user data:", error);
                 setUser(null);
                 setLoading(false);
@@ -157,11 +157,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     name: string,
     email: string,
     password: string,
-    feedback?: string
-  ) => registerUser(name, email, password, feedback, settings);
-  const addPurchaseWithUser = (targetEmail?: string, targetUid?: string) =>
-    addPurchase(user, settings, targetEmail, targetUid);
-  const useRewardWithUser = () => useReward(user);
+    mobileNumber?: string
+  ) => registerUser(name, email, password, mobileNumber, null);
+  const addPurchaseWithUser = (
+    targetEmail?: string,
+    targetUid?: string,
+    offerId?: string
+  ) => addPurchase(user, targetEmail, targetUid, offerId);
+  const redeemRewardWithUser = (rewardId: string) =>
+    redeemReward(user, undefined, undefined, rewardId);
   const updateUserRoleWithUser = (
     userId: string,
     newRole: import("./auth.types").UserRole
@@ -184,9 +188,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         login,
         register,
         addPurchase: addPurchaseWithUser,
-        useReward: useRewardWithUser,
+        redeemReward: redeemRewardWithUser,
         logout,
-        updateSettings,
         updateUserRole: updateUserRoleWithUser,
       }}
     >

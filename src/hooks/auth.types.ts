@@ -10,18 +10,38 @@ export interface Reward {
   rewardId: string;
   claimedAt: Timestamp | null;
   scanHistory: ScanEvent[];
+  // Reward details based on offer at time of creation
+  rewardType: string;
+  rewardValue: string;
+  rewardDescription: string;
+  // Offer snapshot when reward was created
+  offerSnapshot: {
+    offerId: string;
+    offerName: string;
+    description: string;
+    stampRequirement: number;
+    rewardType: string;
+    rewardValue: string;
+    rewardDescription: string;
+  };
+  createdAt: Timestamp;
+  expiresAt?: Timestamp; // Optional expiration date
 }
 
 export interface ScanEvent {
-  scannedBy: string;
+  scannedBy: string; // Full display string: "Admin Name (admin@email.com)"
+  scannedByEmail: string; // Admin's email address
+  scannedByName: string; // Admin's name
   timestamp: Timestamp;
+  stampsEarned: number; // Number of stamps earned in this scan
+  scanId?: string; // Unique identifier for this scan
 }
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  feedback?: string;
+  mobileNumber?: string;
   purchases: number;
   isRewardReady: boolean;
   createdAt: Timestamp;
@@ -30,10 +50,31 @@ export interface User {
   purchaseLimit?: number;
   role: UserRole;
   currentReward?: Reward;
+  // Track completed rewards separately
+  completedRewards?: Reward[];
+  // Current active offer the user is working on
+  currentOfferId?: string;
+  currentOfferProgress?: number;
   // Session management
   sessionToken?: string;
   lastLoginAt?: Timestamp;
   isSessionValid?: boolean;
+}
+
+export interface Offer {
+  offerId: string;
+  name: string;
+  description: string;
+  stampRequirement: number;
+  stampsPerScan: number; // New field: stamps earned per scan
+  rewardType: string; // e.g., "percentage", "fixed_amount", "free_item"
+  rewardValue: string; // e.g., "20", "5.00", "Free Coffee"
+  rewardDescription: string; // e.g., "20% OFF", "$5.00 OFF", "Free Coffee"
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
+  expiresAt?: Timestamp; // New field: optional expiry date
 }
 
 export interface GlobalSettings {
@@ -55,15 +96,10 @@ export interface AuthContextType {
     name: string,
     email: string,
     password: string,
-    feedback?: string
+    mobileNumber?: string
   ) => Promise<User>;
-  addPurchase: (targetEmail?: string, targetUid?: string) => Promise<void>;
-  useReward: () => Promise<void>;
+  addPurchase: (targetEmail?: string, targetUid?: string, offerId?: string) => Promise<void>;
+  redeemReward: (rewardId: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateSettings: (
-    user: User,
-    purchaseLimit: number,
-    descriptionMessage: string
-  ) => Promise<void>;
   updateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
 } 
