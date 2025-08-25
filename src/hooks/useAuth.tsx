@@ -13,6 +13,7 @@ import {
   fetchGlobalSettings,
   updateSettings,
 } from "@/db/adapter";
+import { setUserId, trackEvent } from "@/lib/analytics";
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -109,6 +110,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                   );
                   setUser(userData);
                   setLoading(false);
+
+                  // Set user ID for Google Analytics tracking
+                  if (userData.id) {
+                    setUserId(userData.id);
+                    trackEvent("user_login", {
+                      user_id: userData.id,
+                      user_role: userData.role,
+                      user_email: userData.email,
+                    });
+                  }
                 }
               },
               error => {
@@ -172,6 +183,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   ) => updateUserRole(user, userId, newRole);
   const logout = async () => {
     console.log("Logout called from useAuth hook");
+
+    // Track logout event before clearing user data
+    if (user?.id) {
+      trackEvent("user_logout", {
+        user_id: user.id,
+        user_role: user.role,
+        user_email: user.email,
+      });
+    }
+
     await logoutUser();
     setUser(null);
   };

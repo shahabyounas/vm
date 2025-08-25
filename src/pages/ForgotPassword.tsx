@@ -8,6 +8,7 @@ import { trackEvent } from "@/lib/analytics";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/utils";
 import { checkUserExistsByEmail } from "@/db/adapter";
+import { trackPageView } from "@/lib/analytics";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -17,7 +18,7 @@ const ForgotPassword = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    trackEvent("page_view", { page: "ForgotPassword" });
+    trackPageView("Forgot Password");
   }, []);
 
   // Clear error when user starts typing

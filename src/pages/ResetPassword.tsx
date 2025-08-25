@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Eye, EyeOff, Lock, CheckCircle } from "lucide-react";
-import { trackEvent } from "@/lib/analytics";
+import { trackEvent, trackPageView } from "@/lib/analytics";
 import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 import { auth } from "@/lib/utils";
 
@@ -24,7 +24,7 @@ const ResetPassword = () => {
   const oobCode = searchParams.get("oobCode");
 
   useEffect(() => {
-    trackEvent("page_view", { page: "ResetPassword" });
+    trackPageView("Reset Password");
   }, []);
 
   // Validate reset token on component mount
