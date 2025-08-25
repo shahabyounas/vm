@@ -7,6 +7,7 @@ import { ArrowLeft, Mail, CheckCircle } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/utils";
+import { checkUserExistsByEmail } from "@/db/adapter";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -48,6 +49,18 @@ const ForgotPassword = () => {
     try {
       trackEvent("forgot_password_attempt", { email: email.trim() });
 
+      // Check if user exists in our system
+      const userExists = await checkUserExistsByEmail(email.trim());
+
+      if (!userExists) {
+        setError(
+          "No account found with this email address. Please check your email or create a new account."
+        );
+        trackEvent("forgot_password_user_not_found", { email: email.trim() });
+        return;
+      }
+
+      // User exists, send reset email
       await sendPasswordResetEmail(auth, email.trim());
 
       setSuccess(true);
@@ -66,7 +79,7 @@ const ForgotPassword = () => {
         // Provide user-friendly error messages
         if (errorMessage.includes("user-not-found")) {
           message =
-            "If an account exists with this email, you will receive a reset link.";
+            "No account found with this email address. Please check your email or create a new account.";
         } else if (errorMessage.includes("invalid-email")) {
           message = "Please enter a valid email address.";
         } else if (errorMessage.includes("too-many-requests")) {
@@ -132,6 +145,19 @@ const ForgotPassword = () => {
                   {error && (
                     <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
                       <p className="text-red-300 text-sm">{error}</p>
+                      {error.includes("No account found") && (
+                        <div className="mt-3 pt-3 border-t border-red-500/30">
+                          <p className="text-gray-300 text-sm mb-2">
+                            Don't have an account yet?
+                          </p>
+                          <Link
+                            to="/register"
+                            className="text-red-400 hover:text-red-300 transition-colors font-semibold text-sm"
+                          >
+                            Create a new account
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   )}
 

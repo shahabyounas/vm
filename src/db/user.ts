@@ -1,5 +1,5 @@
 import { db } from "@/lib/utils";
-import { doc, updateDoc, onSnapshot, collection, query, orderBy, getDocs, Timestamp } from "firebase/firestore";
+import { doc, updateDoc, onSnapshot, collection, query, orderBy, getDocs, Timestamp, where } from "firebase/firestore";
 import { User, UserRole } from "@/hooks/auth.types";
 
 export const fetchAllUsers = (onUpdate: (users: User[]) => void, onError: (err: unknown) => void) => {
@@ -110,4 +110,16 @@ export const updateUserRole = async (
   await updateDoc(userRef, {
     role: newRole,
   });
+}; 
+
+export const checkUserExistsByEmail = async (email: string): Promise<boolean> => {
+  try {
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("email", "==", email.toLowerCase()));
+    const querySnapshot = await getDocs(q);
+    return !querySnapshot.empty;
+  } catch (error) {
+    console.error("Error checking user exists:", error);
+    throw error;
+  }
 }; 
